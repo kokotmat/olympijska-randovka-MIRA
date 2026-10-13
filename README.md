@@ -1,1 +1,0 @@
-# olympijska-randovka-MIRA
