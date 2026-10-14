@@ -1,0 +1,5 @@
+GSAP 3.15.0 a ScrollTrigger 3.15.0
+Zdroj: oficiální npm balíček gsap, https://registry.npmjs.org/gsap/-/gsap-3.15.0.tgz
+Soubory jsou beze změny; původní licenční hlavičky jsou zachovány.
+Licence: Standard 'no charge' license, https://gsap.com/standard-license
+Dokumentace: https://gsap.com/docs/v3/Installation/
