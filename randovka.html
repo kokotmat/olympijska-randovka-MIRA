@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Co na to Randovka</title>
+<style>
+:root{color-scheme:dark;--navy:#06132e;--panel:#10264a;--line:#29476d;--gold:#ffd65c;--muted:#a9bdd8;--red:#ff4d61;--green:#75e5b3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0,#153868, var(--navy) 70%);color:#f5f7ff;font:16px/1.5 system-ui,Segoe UI,sans-serif;min-height:100vh}button,input,textarea,select{font:inherit}button,a,input,textarea,select{touch-action:manipulation}button,.button{border:1px solid var(--line);border-radius:12px;background:#19365e;color:white;padding:11px 16px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:650}button:hover,.button:hover{filter:brightness(1.18)}button:disabled{opacity:.4;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #8cdfff;outline-offset:3px}.gold{background:linear-gradient(#ffe998,#eeb630);color:#241b07;border-color:#fbe39a}.danger{background:#572239;border-color:#a6475b}.quiet{background:transparent}.small{font-size:13px;padding:7px 11px}.muted{color:var(--muted)}.good{color:var(--green)}.bad{color:#ffb1bb}h1,h2,h3,p{margin:0 0 14px}h2{font-size:22px}h3{font-size:17px}label{display:block;color:var(--muted);font-size:14px}input,textarea,select{background:#081a34;color:#fff;border:1px solid #39577f;border-radius:9px;padding:10px;max-width:100%}input[type=number]{width:100px}textarea{width:100%;min-height:420px;resize:vertical;font:14px/1.6 Consolas,monospace}input[type=text]{width:100%}.wrap{max-width:1240px;margin:auto;padding:28px}.toolbar,.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.toolbar{justify-content:space-between;margin-bottom:24px}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}.brand{font-weight:950;letter-spacing:-.04em;line-height:1.05;color:var(--gold);text-shadow:0 0 36px #edbb3b33}.panel{padding:24px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(140deg,#132e52e8,#0a1d39e8);box-shadow:0 18px 50px #0002;margin-bottom:20px}.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:20px}.grid .panel{height:fit-content}.stack{display:grid;gap:12px}.menu{max-width:980px;margin:6vh auto}.menu h1{font-size:clamp(48px,8vw,92px);margin:18px 0 24px}.menu-intro{max-width:640px;font-size:19px;color:var(--muted)}.menu-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:32px 0}.menu-actions a{min-height:150px;display:flex;align-items:flex-start;justify-content:center;flex-direction:column;padding:24px;text-align:left;font-size:18px}.menu-actions span{font-size:13px;font-weight:400;margin-top:10px}.status{font-size:12px;letter-spacing:.02em}.question{font-size:clamp(23px,3vw,36px);line-height:1.25;overflow-wrap:anywhere}.answer-admin{display:grid;grid-template-columns:34px 1fr auto auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px}.answer-admin.open{border-color:#c9ac4c;background:#51471f33}.answer-admin strong{color:var(--gold);font-size:22px}.answer-text{overflow-wrap:anywhere}.num{color:var(--muted)}.bank-number{font-size:48px;font-weight:900;color:var(--gold);line-height:1.2}.team-edit{border-top:1px solid var(--line);padding:18px 0}.team-edit:first-child{border:0}.team-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.team-top strong{font-size:26px;color:var(--gold)}.team-name{display:flex;gap:8px;flex:1;max-width:350px}.notice{border-left:3px solid var(--gold);padding:12px 16px;background:#f8cc4c0b;border-radius:0 8px 8px 0;margin:16px 0;color:#dfebff}.help{font-size:13px;color:var(--muted)}.space{margin-top:18px}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;background:#ecf4ff;color:#10213b;box-shadow:0 8px 40px #0008;border-radius:12px;padding:14px 22px;max-width:90vw;text-align:center}#toast:empty{display:none}
+/* Projekční plocha */
+body.projector{overflow-x:hidden;background:radial-gradient(ellipse at 50% 35%,#153e73,#071a39 62%,#030d22)}.show{min-height:100vh;min-height:100dvh;padding:2vh 4vw;display:flex;flex-direction:column;gap:1.3vh}.show-tools{display:flex;justify-content:space-between;gap:8px;align-items:center;min-height:30px;opacity:.8}.show-tools button,.show-tools a{font-size:11px;padding:4px 8px}.show-logo{text-align:center;font-size:clamp(28px,5.5vw,76px);font-weight:1000;line-height:1;letter-spacing:-.04em;color:#ffe896;text-shadow:0 3px 0 #b58019,0 0 28px #f8c64d65;margin:0}.show-question{text-align:center;max-width:1400px;margin:0 auto;font-size:clamp(20px,2.3vw,36px);font-weight:700;line-height:1.2;overflow-wrap:anywhere}.round-label{text-align:center;color:#a7c6e9;font-size:clamp(11px,1vw,16px);text-transform:uppercase;letter-spacing:.15em}.board{width:min(100%,1500px);margin:auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);grid-auto-flow:column;gap:1.6vh 2vw;padding:1.2vh 0}.card{height:clamp(62px,11vh,140px);perspective:1200px}.flip{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.7,.2,1)}.card.revealed .flip{transform:rotateY(180deg)}.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:3px solid #efd177;border-radius:999px;display:flex;align-items:center;overflow:hidden;box-shadow:0 0 0 5px #142f57,0 6px 20px #0005}.front{justify-content:center;background:linear-gradient(#2865a0,#0e3262 48%,#071c40 50%,#1b477a);font-size:clamp(28px,5vh,65px);font-weight:900;color:#ffdf80;text-shadow:0 3px 6px #0008}.back{transform:rotateY(180deg);background:linear-gradient(#ffec9a,#f1bc39);color:#171307;padding-left:clamp(12px,2vw,36px);font-weight:850}.back .text{flex:1;min-width:0;line-height:1.1;padding:8px 10px 8px 0;overflow-wrap:anywhere;font-size:clamp(16px,2.2vw,34px)}.back .points{align-self:stretch;display:flex;align-items:center;justify-content:center;min-width:18%;padding:0 10px;background:#edb328;border-left:2px solid #9b72194d;font-size:clamp(22px,3.5vw,52px)}.strikes{display:flex;justify-content:center;gap:20px;line-height:1}.strike-slot{font-size:clamp(27px,4vh,50px);font-weight:950;color:#ffffff12;-webkit-text-stroke:1px #486283}.strike-slot.active{color:#ff3f55;-webkit-text-stroke:1px #ff8b98;text-shadow:0 0 20px #ff304f88}.show-bank{text-align:center}.show-bank span{font-size:clamp(10px,1vw,15px);color:#d1dff3;text-transform:uppercase;letter-spacing:.2em}.show-bank strong{display:inline-block;font-size:clamp(32px,5vh,64px);line-height:1;margin-left:18px;color:var(--gold);font-weight:950}.show-teams{display:flex;gap:12px;justify-content:center}.show-team{flex:1;min-width:0;max-width:460px;background:linear-gradient(#163c68,#0c2445);border:1px solid #3a597e;border-radius:14px;text-align:center;padding:8px}.show-team.active{border-color:var(--gold);box-shadow:0 0 16px #ffd65c25}.show-team span{display:block;font-size:clamp(13px,1.7vw,25px);overflow-wrap:anywhere;line-height:1.1}.show-team strong{font-size:clamp(24px,3.4vw,48px);line-height:1.2;color:var(--gold)}.steal{text-align:center;color:var(--gold);font-size:clamp(12px,1.5vw,22px);font-weight:800;min-height:1.5em}.big-strike{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;pointer-events:none;background:#17020b70;color:#ff193c;font-size:min(65vw,75vh);line-height:1;font-weight:1000;text-shadow:0 0 50px #ff193c,0 6px 0 #700b20;animation:strike-pop 1.2s both}.big-strike[hidden]{display:none}@keyframes strike-pop{0%{opacity:0;transform:scale(.3)}15%,70%{opacity:1;transform:scale(1)}30%{transform:scale(1.1)}100%{opacity:0;transform:scale(1.15)}}
+@media(max-width:800px){.wrap{padding:16px}.grid{grid-template-columns:1fr}.menu-actions{grid-template-columns:1fr}.menu-actions a{min-height:100px}.answer-admin{grid-template-columns:22px 1fr auto}.answer-admin button{grid-column:2/4}.panel{padding:18px}.show{padding:12px 3vw}.show-teams{gap:6px}.show-team{padding:8px 4px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}@media(max-height:700px) and (min-width:850px){.show{gap:.7vh}.show-tools{min-height:24px}.show-logo{font-size:7vh}.show-question{font-size:3.7vh}.card{height:10.5vh}.show-team strong{font-size:5vh}}
+
+.setup-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px;margin-top:22px}.setup-field span{display:block;margin-bottom:6px}.moderator-note{font-size:14px;line-height:1.55}.show-teams{display:grid}.show-team{width:100%;max-width:none}.show.many-teams{gap:.65vh}.show.many-teams .card{height:clamp(58px,9vh,122px)}.show.many-teams .show-logo{font-size:clamp(28px,5.5vh,65px)}.show.many-teams .show-question{font-size:clamp(18px,3.4vh,34px)}.show.many-teams .show-team{padding:5px}.show.many-teams .show-team span{font-size:clamp(12px,1.15vw,19px)}.show.many-teams .show-team strong{font-size:clamp(22px,3.5vh,38px)}@media(max-width:600px){.setup-fields{grid-template-columns:1fr}}
+
+.presentation{gap:1.2vh}.rules-slide,.results-slide{width:min(100%,1450px);margin:auto;text-align:center}.slide-title{font-size:clamp(28px,5vh,58px);font-weight:950;line-height:1.08;margin:1vh 0;color:var(--gold)}.slide-subtitle{color:#b9cfea;font-size:clamp(13px,1.4vw,21px);margin:0 0 2vh}.rules-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.6vh 1.6vw;text-align:left}.rule-card{display:flex;gap:16px;background:linear-gradient(130deg,#193e69,#0c2243);border:1px solid #496285;border-radius:18px;padding:clamp(12px,1.8vh,24px)}.rule-number{color:var(--gold);font-size:clamp(23px,3.4vh,42px);font-weight:950;line-height:1.2}.rule-card h2{font-size:clamp(17px,2.3vh,29px);margin:0 0 5px;color:#ffe08a}.rule-card p{font-size:clamp(14px,1.9vh,23px);line-height:1.35;margin:0}.rules-footer{font-size:clamp(12px,1.7vh,20px);color:#b9cfea;line-height:1.35;max-width:1150px;margin:2vh auto 1vh}.rules-source{color:#849dbb;font-size:11px}.winner-names{color:#fff1b8;font-size:clamp(25px,5vh,62px);font-weight:950;line-height:1.1;overflow-wrap:anywhere;max-width:1300px;margin:1vh auto}.winner-score{font-size:clamp(22px,3vh,38px);color:var(--gold);margin:1vh 0 2vh}.results-list{display:grid;gap:1vh;max-width:1050px;margin:auto}.results-list.two-columns{grid-template-columns:repeat(2,minmax(0,1fr));max-width:1400px;gap:1vh 1.5vw}.rank-row{display:grid;grid-template-columns:45px 1fr auto;gap:12px;align-items:center;background:#12345b;border:1px solid #3d587c;border-radius:13px;text-align:left;padding:clamp(6px,1vh,14px) 18px;min-width:0}.rank-row.first{background:linear-gradient(110deg,#756024,#2f3e48);border-color:var(--gold)}.rank-position{color:#afc7e6;font-size:clamp(18px,2.5vh,30px);font-weight:900}.rank-name{font-size:clamp(17px,2.4vh,29px);line-height:1.15;overflow-wrap:anywhere}.rank-points{color:var(--gold);font-size:clamp(23px,3vh,38px)}.results-thanks{color:#a9bdd8;margin:2vh 0 0;font-size:clamp(16px,2.2vh,25px)}details>summary{cursor:pointer;color:var(--muted)}[hidden]{display:none!important}@media(max-width:700px){.rules-grid{grid-template-columns:1fr}.results-list.two-columns{grid-template-columns:1fr}.rule-card p{font-size:15px}}@media print{.show-tools,.rules-source{display:none}.show{padding:0}.rule-card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main id="app"></main><div id="toast" role="status" aria-live="polite"></div>
+<div id="bigStrike" class="big-strike" aria-label="Chybná odpověď" hidden>✕</div>
+<script>
+'use strict';
+// Jeden klíč = atomicky uložený stav. Pro jiné hry změňte jeho název.
+// Nová verze úložiště odděluje nový průběh hry od případných starých záložek.
+const KEY='randovka.v3', LEGACY_KEY='randovka.v2', OLDEST_KEY='randovka.v1', PRESENCE=KEY+'.presence.';
+const MAX_TEAMS=12;
+const RULES=[["Hádejte anketu", "Hledejte šest odpovědí na tabuli. Podobnou formulaci posuzuje moderátor."], ["Body do Banku", "Správný tip přidá body uvedené na tabuli. Po uhodnutí celé tabule získá Bank hrající tým."], ["Tři chyby", "Každý omyl přidá X. Třetí křížek zůstává svítit a otevírá jediný pokus o krádež."], ["Jeden pokus o krádež", "Vyzyvatel uhodne zbývající odpověď: bere Bank i body za tip. Neuhodne: Bank získá původní tým."], ["Další kolo", "Body získá vždy jeden tým. Nové kolo začíná bez křížků a s prázdným Bankem."], ["Vítěz", "Po poslední otázce rozhodne celkové skóre. Při shodě týmům patří stejné místo."]];
+const RULES_SOURCE="https://www.zestolu.cz/files/29/1529.pdf";
+const DEFAULTS=[
+  {
+    "question": "Který den v týdnu je úplně nejhorší?",
+    "answers": [
+      {
+        "text": "Pondělí",
+        "points": 47,
+        "rawVotes": 42
+      },
+      {
+        "text": "Středa",
+        "points": 21,
+        "rawVotes": 19
+      },
+      {
+        "text": "Úterý",
+        "points": 16,
+        "rawVotes": 14
+      },
+      {
+        "text": "Čtvrtek",
+        "points": 13,
+        "rawVotes": 11
+      },
+      {
+        "text": "Neděle",
+        "points": 2,
+        "rawVotes": 2
+      },
+      {
+        "text": "Pátek",
+        "points": 1,
+        "rawVotes": 1
+      }
+    ],
+    "note": "Původní anketa: 89 odpovědí, z nich 89 ve vybrané šestici. Herní model pro 100 lidí: tabule 100 bodů, ostatní odpovědi 0 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Na tabuli je i neděle: opravdu ji uvedli dva respondenti. Otázka se ptá na den v týdnu, ne pouze na školní dny.",
+    "scoring": "per100",
+    "respondents": 89,
+    "otherPoints": 0
+  },
+  {
+    "question": "Který předmět je nejjednodušší?",
+    "answers": [
+      {
+        "text": "Výtvarka",
+        "points": 20,
+        "rawVotes": 18
+      },
+      {
+        "text": "Hudebka",
+        "points": 17,
+        "rawVotes": 15
+      },
+      {
+        "text": "Angličtina",
+        "points": 16,
+        "rawVotes": 14
+      },
+      {
+        "text": "Tělocvik",
+        "points": 15,
+        "rawVotes": 13
+      },
+      {
+        "text": "Matematika",
+        "points": 7,
+        "rawVotes": 6
+      },
+      {
+        "text": "Základy společenských věd",
+        "points": 7,
+        "rawVotes": 6
+      }
+    ],
+    "note": "Původní anketa: 89 odpovědí, z nich 72 ve vybrané šestici. Herní model pro 100 lidí: tabule 82 bodů, ostatní odpovědi 18 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Uznávejte běžné názvy i zkratky: výtvarná výchova, hudební výchova, AJ, TV, matika, základy společenských věd.",
+    "scoring": "per100",
+    "respondents": 89,
+    "otherPoints": 18
+  },
+  {
+    "question": "Který učitel by nejspíš přežil zombie apokalypsu?",
+    "answers": [
+      {
+        "text": "Petr Jandera",
+        "points": 19,
+        "rawVotes": 17
+      },
+      {
+        "text": "Luboš Blahout",
+        "points": 17,
+        "rawVotes": 15
+      },
+      {
+        "text": "Jaroslav Petrnoušek",
+        "points": 16,
+        "rawVotes": 14
+      },
+      {
+        "text": "Jan Kosina",
+        "points": 9,
+        "rawVotes": 8
+      },
+      {
+        "text": "Libor Behúl",
+        "points": 8,
+        "rawVotes": 7
+      },
+      {
+        "text": "Tereza Nemeth",
+        "points": 4,
+        "rawVotes": 4
+      }
+    ],
+    "note": "Původní anketa: 89 odpovědí, z nich 65 ve vybrané šestici. Herní model pro 100 lidí: tabule 73 bodů, ostatní odpovědi 27 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Shoda na hranici tabule: Tereza Nemeth i Jindřich Pulíček mají 4 hlasy. Na tabuli je Tereza Nemeth podle pořadí v listu Hotové výsledky. Jindřich Pulíček není další políčko. Před hrou lze v editoru šestou odpověď zaměnit bez změny bodů.",
+    "scoring": "per100",
+    "respondents": 89,
+    "otherPoints": 27
+  },
+  {
+    "question": "Které jídlo ze školní jídelny vyvolává největší emoce?",
+    "answers": [
+      {
+        "text": "Chicken potatoes",
+        "points": 14,
+        "rawVotes": 11
+      },
+      {
+        "text": "Rybí polévka / halászlé",
+        "points": 12,
+        "rawVotes": 9
+      },
+      {
+        "text": "Smažák",
+        "points": 12,
+        "rawVotes": 9
+      },
+      {
+        "text": "Perník",
+        "points": 8,
+        "rawVotes": 6
+      },
+      {
+        "text": "Quattro formaggi",
+        "points": 6,
+        "rawVotes": 5
+      },
+      {
+        "text": "Kuře à la kachna",
+        "points": 5,
+        "rawVotes": 4
+      }
+    ],
+    "note": "Původní anketa: 78 odpovědí, z nich 44 ve vybrané šestici. Herní model pro 100 lidí: tabule 57 bodů, ostatní odpovědi 43 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Emoce mohou být pozitivní i negativní. Quattro formaggi = 5 jednoznačných variant názvu. Kuře à la kachna = 3 + 1 hlas. Obecné „sýrová omáčka“ se do Quattro formaggi nezapočítává. Uznávejte smažený sýr a varianty výslovnosti názvů jídel.",
+    "scoring": "per100",
+    "respondents": 78,
+    "otherPoints": 43
+  },
+  {
+    "question": "Který předmět je nejtěžší?",
+    "answers": [
+      {
+        "text": "Fyzika",
+        "points": 45,
+        "rawVotes": 40
+      },
+      {
+        "text": "Chemie",
+        "points": 12,
+        "rawVotes": 11
+      },
+      {
+        "text": "Matematika",
+        "points": 11,
+        "rawVotes": 10
+      },
+      {
+        "text": "Informatika",
+        "points": 7,
+        "rawVotes": 6
+      },
+      {
+        "text": "Čeština",
+        "points": 7,
+        "rawVotes": 6
+      },
+      {
+        "text": "Dějepis",
+        "points": 6,
+        "rawVotes": 5
+      }
+    ],
+    "note": "Původní anketa: 89 odpovědí, z nich 78 ve vybrané šestici. Herní model pro 100 lidí: tabule 88 bodů, ostatní odpovědi 12 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Uznávejte běžné zkratky a hovorové názvy předmětů: fyzika, chemie, matika, IT/IVT, český jazyk, děják.",
+    "scoring": "per100",
+    "respondents": 89,
+    "otherPoints": 12
+  },
+  {
+    "question": "Který předmět je absolutně nejoblíbenější?",
+    "answers": [
+      {
+        "text": "Tělocvik",
+        "points": 23,
+        "rawVotes": 20
+      },
+      {
+        "text": "Angličtina",
+        "points": 12,
+        "rawVotes": 10
+      },
+      {
+        "text": "Základy společenských věd",
+        "points": 12,
+        "rawVotes": 10
+      },
+      {
+        "text": "Hudebka",
+        "points": 10,
+        "rawVotes": 9
+      },
+      {
+        "text": "Biologie",
+        "points": 9,
+        "rawVotes": 8
+      },
+      {
+        "text": "Výtvarka",
+        "points": 7,
+        "rawVotes": 6
+      }
+    ],
+    "note": "Původní anketa: 86 odpovědí, z nich 63 ve vybrané šestici. Herní model pro 100 lidí: tabule 73 bodů, ostatní odpovědi 27 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Oblíbenost je jiná otázka než jednoduchost. Uznávejte běžné názvy a zkratky jednotlivých předmětů.",
+    "scoring": "per100",
+    "respondents": 86,
+    "otherPoints": 27
+  },
+  {
+    "question": "Který učitel má nejikoničtější módní styl?",
+    "answers": [
+      {
+        "text": "Jiřina Řehořová",
+        "points": 18,
+        "rawVotes": 16
+      },
+      {
+        "text": "Martina Žmolíková",
+        "points": 15,
+        "rawVotes": 13
+      },
+      {
+        "text": "Libor Behúl",
+        "points": 14,
+        "rawVotes": 12
+      },
+      {
+        "text": "Luboš Blahout",
+        "points": 8,
+        "rawVotes": 7
+      },
+      {
+        "text": "Iva Skořepová",
+        "points": 5,
+        "rawVotes": 4
+      },
+      {
+        "text": "Jaroslav Petrnoušek",
+        "points": 3,
+        "rawVotes": 3
+      }
+    ],
+    "note": "Původní anketa: 87 odpovědí, z nich 55 ve vybrané šestici. Herní model pro 100 lidí: tabule 63 bodů, ostatní odpovědi 37 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Na šestém místě se dělí více učitelů se 3 hlasy. Vybrán Jaroslav Petrnoušek, který je výrazný i v otázce o zombie. Stejně mají Jindřich Pulíček, Kateřina Vrajíková, Diana Fröhlichová a Hana Behúlová. Libor Behúl a Hana Behúlová jsou odlišné odpovědi. Zvolenou šestici před hrou neměňte během kola.",
+    "scoring": "per100",
+    "respondents": 87,
+    "otherPoints": 37
+  },
+  {
+    "question": "Která třída má nejhezčí holky?",
+    "answers": [
+      {
+        "text": "V6.A",
+        "points": 30,
+        "rawVotes": 25
+      },
+      {
+        "text": "V8.A",
+        "points": 25,
+        "rawVotes": 21
+      },
+      {
+        "text": "3.A",
+        "points": 11,
+        "rawVotes": 9
+      },
+      {
+        "text": "4.A",
+        "points": 11,
+        "rawVotes": 9
+      },
+      {
+        "text": "2.A",
+        "points": 6,
+        "rawVotes": 5
+      },
+      {
+        "text": "S4.A",
+        "points": 5,
+        "rawVotes": 4
+      }
+    ],
+    "note": "Původní anketa: 83 odpovědí, z nich 73 ve vybrané šestici. Herní model pro 100 lidí: tabule 88 bodů, ostatní odpovědi 12 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Uznávejte zřetelně vyslovená označení tříd. 3.A a 4.A mají shodně 9 hlasů; obě jsou na tabuli.",
+    "scoring": "per100",
+    "respondents": 83,
+    "otherPoints": 12
+  },
+  {
+    "question": "Která třída má nejhezčí kluky?",
+    "answers": [
+      {
+        "text": "V8.A",
+        "points": 46,
+        "rawVotes": 36
+      },
+      {
+        "text": "3.A",
+        "points": 10,
+        "rawVotes": 8
+      },
+      {
+        "text": "S4.A",
+        "points": 9,
+        "rawVotes": 7
+      },
+      {
+        "text": "V6.A",
+        "points": 8,
+        "rawVotes": 6
+      },
+      {
+        "text": "2.A",
+        "points": 6,
+        "rawVotes": 5
+      },
+      {
+        "text": "1.A",
+        "points": 5,
+        "rawVotes": 4
+      }
+    ],
+    "note": "Původní anketa: 79 odpovědí, z nich 66 ve vybrané šestici. Herní model pro 100 lidí: tabule 84 bodů, ostatní odpovědi 16 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Uznávejte zřetelně vyslovená označení tříd. Rozlišujte například 1.A a V1.A; jde o jiné odpovědi.",
+    "scoring": "per100",
+    "respondents": 79,
+    "otherPoints": 16
+  },
+  {
+    "question": "Která třída je nejposlušnější?",
+    "answers": [
+      {
+        "text": "V7.A",
+        "points": 25,
+        "rawVotes": 20
+      },
+      {
+        "text": "V1.A",
+        "points": 15,
+        "rawVotes": 12
+      },
+      {
+        "text": "V6.A",
+        "points": 15,
+        "rawVotes": 12
+      },
+      {
+        "text": "V8.A",
+        "points": 11,
+        "rawVotes": 9
+      },
+      {
+        "text": "3.A",
+        "points": 9,
+        "rawVotes": 7
+      },
+      {
+        "text": "1.A",
+        "points": 6,
+        "rawVotes": 5
+      }
+    ],
+    "note": "Původní anketa: 81 odpovědí, z nich 65 ve vybrané šestici. Herní model pro 100 lidí: tabule 81 bodů, ostatní odpovědi 19 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. Na hranici šestice mají 1.A, 4.A a V3.A shodně 5 hlasů. Na tabuli je 1.A podle pořadí v listu Hotové výsledky. Jinou z těchto tříd lze před hrou zaměnit bez změny bodů; během kola výběr neměňte.",
+    "scoring": "per100",
+    "respondents": 81,
+    "otherPoints": 19
+  },
+  {
+    "question": "Která třída platí za největší „zlobivce“?",
+    "answers": [
+      {
+        "text": "3.A",
+        "points": 17,
+        "rawVotes": 14
+      },
+      {
+        "text": "2.A",
+        "points": 11,
+        "rawVotes": 9
+      },
+      {
+        "text": "S3.A",
+        "points": 11,
+        "rawVotes": 9
+      },
+      {
+        "text": "V2.A",
+        "points": 11,
+        "rawVotes": 9
+      },
+      {
+        "text": "S4.A",
+        "points": 8,
+        "rawVotes": 7
+      },
+      {
+        "text": "V1.A",
+        "points": 8,
+        "rawVotes": 7
+      }
+    ],
+    "note": "Původní anketa: 83 odpovědí, z nich 55 ve vybrané šestici. Herní model pro 100 lidí: tabule 66 bodů, ostatní odpovědi 34 bodů mimo tabuli. Zaokrouhleno na celá čísla. Počty hlasů v následující poznámce jsou původní. S4.A, V1.A, V4.A a V8.A mají shodně 7 hlasů a dělí se o místa od pátého pořadí. Na tabuli jsou S4.A a V1.A podle pořadí v listu Hotové výsledky. Výběr před hrou lze upravit, během kola jej neměňte.",
+    "scoring": "per100",
+    "respondents": 83,
+    "otherPoints": 34
+  }
+];
+const $=id=>document.getElementById(id);
+const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
+const clone=value=>JSON.parse(JSON.stringify(value));
+const blankRound=()=>({revealed:Array(6).fill(false),credited:Array(6).fill(false),strikes:0,settled:false,steal:false,owner:null,challenger:null,winner:null,award:0});
+const initial=()=>({version:3,revision:0,screen:'rules',questions:clone(DEFAULTS),rounds:DEFAULTS.map(blankRound),index:0,teams:[{id:uid(),name:'Tým 1',score:0},{id:uid(),name:'Tým 2',score:0}],active:null,effect:null});
+const TEACHER_NAMES=Object.freeze({
+  "jandera": "Petr Jandera",
+  "blahout": "Luboš Blahout",
+  "petrnoušek": "Jaroslav Petrnoušek",
+  "kosina": "Jan Kosina",
+  "behúl": "Libor Behúl",
+  "nemeth": "Tereza Nemeth",
+  "řehořová": "Jiřina Řehořová",
+  "žmolíková": "Martina Žmolíková",
+  "skořepová": "Iva Skořepová",
+  "pulíček": "Jindřich Pulíček",
+  "vrajíková": "Kateřina Vrajíková",
+  "fröhlichová": "Diana Fröhlichová",
+  "behúlová": "Hana Behúlová"
+});
+
+function expandTeacherNames(value){
+ return value.replace(/[\p{L}\p{M}]+(?:-[\p{L}\p{M}]+)*/gu,(word,offset,source)=>{
+  const full=TEACHER_NAMES[word.toLocaleLowerCase('cs')];if(!full)return word;
+  const split=full.lastIndexOf(' '),first=full.slice(0,split+1),surname=full.slice(split+1);
+  return source.slice(0,offset).toLocaleLowerCase('cs').endsWith(first.toLocaleLowerCase('cs'))?surname:full;
+ });
+}
+function correctAnswerLabel(value){
+ if(value.toLocaleLowerCase('cs')==='zsv')return 'Základy společenských věd';
+ return expandTeacherNames(value.replace(/\bPetrnouss?ek\b/giu,'Petrnoušek'));
+}
+function correctModeratorNote(value){return expandTeacherNames(value.replace(/\bPetrnouss?ek\b/giu,'Petrnoušek').replace(/\bZSV\b/giu,'Základy společenských věd'));}
+function validateQuestions(data){
+ if(!Array.isArray(data)||data.length<1||data.length>1000)throw Error('Vložte pole s 1 až 1000 otázkami.');
+ return data.map((q,i)=>{
+  if(!q||typeof q.question!=='string'||!q.question.trim()||q.question.length>240)throw Error(`Otázka ${i+1}: text musí mít 1 až 240 znaků.`);
+  if(!Array.isArray(q.answers)||q.answers.length!==6)throw Error(`Otázka ${i+1}: musí mít přesně 6 odpovědí.`);
+  if(q.note!==undefined&&(typeof q.note!=='string'||q.note.length>1500))throw Error(`Otázka ${i+1}: poznámka smí mít nejvýše 1500 znaků.`);
+  if(q.scoring!==undefined){
+   if(q.scoring!=='per100'||!Number.isInteger(q.respondents)||q.respondents<1||q.respondents>100000||!Number.isInteger(q.otherPoints)||q.otherPoints<0||q.otherPoints>100)throw Error(`Otázka ${i+1}: neplatné údaje bodování pro 100 lidí.`);
+   if(q.answers.some(a=>!a||!Number.isInteger(a.rawVotes)||a.rawVotes<0||a.rawVotes>q.respondents)||q.answers.reduce((n,a)=>n+a.rawVotes,0)>q.respondents)throw Error(`Otázka ${i+1}: neplatné původní počty hlasů.`);
+   if(q.answers.reduce((n,a)=>n+a.points,0)+q.otherPoints!==100)throw Error(`Otázka ${i+1}: body tabule a ostatních odpovědí musí dát dohromady 100.`);
+  }
+  return {question:q.question.trim(),...(q.note?{note:correctModeratorNote(q.note)}:{}),...(q.scoring?{scoring:q.scoring,respondents:q.respondents,otherPoints:q.otherPoints}:{}),answers:q.answers.map((a,j)=>{
+   if(!a||typeof a.text!=='string'||!a.text.trim()||a.text.length>100)throw Error(`Otázka ${i+1}, odpověď ${j+1}: text musí mít 1 až 100 znaků.`);
+   if(!Number.isInteger(a.points)||a.points<0||a.points>100000)throw Error(`Otázka ${i+1}, odpověď ${j+1}: body musí být celé číslo 0 až 100000.`);
+   if(a.rawVotes!==undefined&&(!Number.isInteger(a.rawVotes)||a.rawVotes<0||a.rawVotes>100000))throw Error(`Otázka ${i+1}, odpověď ${j+1}: neplatný původní počet hlasů.`);
+   return {text:correctAnswerLabel(a.text.trim()),points:a.points,...(a.rawVotes!==undefined?{rawVotes:a.rawVotes}:{})};
+  })};
+ });
+}
+function validateState(s){
+ if(!s||![1,2,3].includes(s.version)||!Number.isSafeInteger(s.revision)||s.revision<0)throw Error('Neplatná verze uložené hry.');
+ if(s.screen===undefined)s.screen='game';
+ if(!['rules','game','results'].includes(s.screen))throw Error('Neplatná projekční obrazovka.');
+ s.questions=validateQuestions(s.questions);
+ if(!Array.isArray(s.teams)||s.teams.length<2||s.teams.length>MAX_TEAMS||s.teams.some(t=>!t||typeof t.id!=='string'||typeof t.name!=='string'||!t.name.trim()||t.name.length>24||!Number.isSafeInteger(t.score)||Math.abs(t.score)>1000000000)||new Set(s.teams.map(t=>t.id)).size!==s.teams.length)throw Error('Poškozené údaje týmů.');
+ if(!Number.isInteger(s.index)||s.index<0||s.index>=s.questions.length||!Array.isArray(s.rounds)||s.rounds.length!==s.questions.length)throw Error('Poškozené údaje kol.');
+ for(const r of s.rounds){
+  if(!r||!['revealed','credited'].every(k=>Array.isArray(r[k])&&r[k].length===6&&r[k].every(v=>typeof v==='boolean'))||!Number.isInteger(r.strikes)||r.strikes<0||r.strikes>3||typeof r.settled!=='boolean'||typeof r.steal!=='boolean'||r.credited.some((v,i)=>v&&(!r.revealed[i]||r.settled)))throw Error('Poškozený stav kola.');
+  for(const key of ['owner','challenger','winner']){if(r[key]===undefined)r[key]=null;if(r[key]!==null&&typeof r[key]!=='string')throw Error('Neplatný tým kola.');}
+  if(r.award===undefined)r.award=0;if(!Number.isInteger(r.award)||r.award<0||r.award>600000)throw Error('Neplatné připsané body kola.');
+ }
+ if(s.active!==null&&!s.teams.some(t=>t.id===s.active))throw Error('Neplatný aktivní tým.');
+ if(s.effect!==null&&(!s.effect||typeof s.effect.id!=='string'||!Number.isFinite(s.effect.at)))throw Error('Neplatný efekt.');
+ // Z importované zálohy přebíráme pouze známá, ověřená pole.
+ return {version:3,revision:s.revision,screen:s.screen,questions:s.questions,index:s.index,
+  teams:s.teams.map(t=>({id:t.id,name:t.name.trim(),score:t.score})),
+  rounds:s.rounds.map(r=>({revealed:[...r.revealed],credited:[...r.credited],strikes:r.strikes,settled:r.settled,steal:r.steal,owner:r.owner,challenger:r.challenger,winner:r.winner,award:r.award})),
+  active:s.active,effect:s.effect?{id:s.effect.id,at:s.effect.at}:null};
+}
+let state,storageOK=true,editorDirty=false,teamDirty=false,mode='',audio=null,sound=false,lastEffect=null,effectTimer;
+const instance=uid(),peers=new Map();
+
+function usesOriginalSurveyPoints(questions){
+ return [7,11].includes(questions.length)&&questions.every((q,i)=>q.question===DEFAULTS[i].question&&q.answers.length===6&&q.answers.every((a,j)=>correctAnswerLabel(a.text)===DEFAULTS[i].answers[j].text&&a.points===DEFAULTS[i].answers[j].rawVotes));
+}
+function gameIsPristine(s){return s.teams.every(t=>t.score===0)&&s.rounds.every(r=>!r.settled&&!r.steal&&r.strikes===0&&r.award===0&&r.revealed.every(v=>!v)&&r.credited.every(v=>!v));}
+function scoringUpgradeNotice(){return panel(text('h2','Zeptali jsme se 100 Randováků — nové bodování'),text('p','Tato rozehraná hra ještě používá původní počty hlasů. Novou anketu na 100 lidí spusťte jako novou hru, aby se staré a nové body nepromíchaly. Počet a názvy týmů zůstanou.'),button('Spustit anketu na 100 lidí — nová hra',loadBuiltIn,'gold'));}
+
+function sameQuestions(a,b){return JSON.stringify(validateQuestions(a))===JSON.stringify(validateQuestions(b));}
+function read(){const raw=localStorage.getItem(KEY)??localStorage.getItem(LEGACY_KEY)??localStorage.getItem(OLDEST_KEY);const loaded=raw?validateState(JSON.parse(raw)):initial();if(usesOriginalSurveyPoints(loaded.questions)&&gameIsPristine(loaded)){loaded.questions=clone(DEFAULTS);restartGameState(loaded);}if(loaded.questions.length===7&&sameQuestions(loaded.questions,DEFAULTS.slice(0,7)))appendClassQuestions(loaded);if(loaded.rounds[loaded.index].steal)ensureRoundTeams(loaded);return loaded;}
+function toast(message){$('toast').textContent=message;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').textContent='',5000);}
+function node(tag,props={},children=[]){const n=document.createElement(tag);for(const [k,v]of Object.entries(props)){if(k==='class')n.className=v;else if(k==='text')n.textContent=v;else if(k.startsWith('on'))n.addEventListener(k.slice(2),v);else n.setAttribute(k,v);}for(const c of children)n.append(c);return n;}
+const text=(tag,value,cls='')=>node(tag,{text:String(value),class:cls});
+const button=(label,action,cls='',disabled=false)=>{const b=node('button',{type:'button',text:label,class:cls,onclick:action});b.disabled=disabled;return b;};
+const link=(label,target,cls='button')=>node('a',{text:label,href:'#'+target,class:cls});
+const row=(...children)=>node('div',{class:'row'},children);
+const panel=(...children)=>node('section',{class:'panel'},children);
+function bank(s=state){return s.rounds[s.index].credited.reduce((sum,v,i)=>sum+(v?s.questions[s.index].answers[i].points:0),0);}
+function update(fn,{strikeOnly=false}={}){
+ try{const next=read();fn(next);next.revision++;validateState(next);localStorage.setItem(KEY,JSON.stringify(next));const previousScreen=state?.screen;state=next;if(strikeOnly&&mode==='moderator'&&$('strikeButton')&&previousScreen===state.screen)refreshStrikeControls();else render();return true;}
+ catch(e){toast('Změna nebyla uložena: '+e.message);return false;}
+}
+function teamName(id,s=state){return s.teams.find(t=>t.id===id)?.name||'odebraný tým';}
+function ensureRoundTeams(s){
+ const r=s.rounds[s.index],exists=id=>s.teams.some(t=>t.id===id);
+ if(!exists(r.owner)){
+  const activeIndex=s.teams.findIndex(t=>t.id===s.active);
+  r.owner=r.steal&&activeIndex>=0?s.teams[(activeIndex+s.teams.length-1)%s.teams.length].id:exists(s.active)?s.active:s.teams[s.index%s.teams.length].id;
+ }
+ if(r.steal&&(!exists(r.challenger)||r.challenger===r.owner))r.challenger=s.teams[(s.teams.findIndex(t=>t.id===r.owner)+1)%s.teams.length].id;
+ return r;
+}
+function finishRound(s,id){
+ const r=s.rounds[s.index],t=s.teams.find(t=>t.id===id);
+ if(r.settled||!t)return;
+ const amount=bank(s);t.score+=amount;r.award=amount;r.winner=id;r.settled=true;r.steal=false;r.credited.fill(false);s.active=id;
+ // Křížky zůstávají až do dalšího kola. Žádný automatický reset po třetím X.
+}
+function toggleAnswer(i){update(s=>{
+ const r=ensureRoundTeams(s);s.screen='game';
+ if(r.settled){r.revealed[i]=!r.revealed[i];return;}
+ const revealing=!r.revealed[i];r.revealed[i]=revealing;r.credited[i]=revealing;
+ if(revealing&&r.steal)finishRound(s,r.challenger);
+ else if(r.revealed.every(Boolean))finishRound(s,r.owner);
+});}
+function strike(){update(s=>{
+ const r=ensureRoundTeams(s);if(r.strikes>=3||r.settled||r.steal)return;
+ s.screen='game';r.strikes++;s.effect={id:uid(),at:Date.now()};
+ if(r.strikes===3){r.steal=true;r.challenger=s.teams[(s.teams.findIndex(t=>t.id===r.owner)+1)%s.teams.length].id;s.active=r.challenger;}
+},{strikeOnly:true});}
+function failSteal(){update(s=>{
+ const r=ensureRoundTeams(s);if(!r.steal||r.settled)return;
+ s.screen='game';s.effect={id:uid(),at:Date.now()};finishRound(s,r.owner);
+});}
+function replayStrike(){update(s=>{s.screen='game';s.effect={id:uid(),at:Date.now()};});}
+function resetStrikes(){
+ if(state.rounds[state.index].settled){toast('Kolo je uzavřené. Pro opravu použijte „Začít tuto otázku znovu“.');return;}
+ if(state.rounds[state.index].strikes&&!confirm('Opravit počet chyb na nulu a vrátit hru původnímu týmu? Bank zůstane.'))return;
+ update(s=>{const r=ensureRoundTeams(s);r.strikes=0;r.steal=false;r.challenger=null;s.active=r.owner;s.effect=null;},{strikeOnly:true});
+}
+function selectPlayingTeam(id){update(s=>{
+ const r=ensureRoundTeams(s);if(r.settled)return;
+ if(r.steal){if(id===r.owner)throw Error('Vyzyvatel musí být jiný než původní tým.');r.challenger=id;}else r.owner=id;
+ s.active=id;
+});}
+function award(id){update(s=>{
+ const r=ensureRoundTeams(s);
+ if(r.settled)return;
+ if(id!==r.owner&&(!r.steal||id!==r.challenger))throw Error('V tomto kole může získat Bank jen hrající tým nebo vyzyvatel.');
+ finishRound(s,id);
+});}
+function navigate(delta){update(s=>{
+ const r=s.rounds[s.index];if(!r.settled&&(bank(s)>0||r.strikes>0))throw Error('Nejprve dokončete kolo. Při krádeži uznejte správný tip, nebo stiskněte „Krádež nevyšla“.');
+ s.index=Math.max(0,Math.min(s.questions.length-1,s.index+delta));s.screen='game';s.effect=null;
+ const target=s.rounds[s.index];if(!target.owner)s.active=s.teams[s.index%s.teams.length].id;
+ ensureRoundTeams(s);s.active=target.settled?(s.teams.some(t=>t.id===target.winner)?target.winner:target.owner):target.steal?target.challenger:target.owner;
+});}
+function resetRound(){
+ const previous=state.rounds[state.index];const scoreNote=previous.settled&&!previous.winner?'Toto kolo bylo uzavřeno ve staré verzi bez záznamu vítěze. Jeho dříve připsané body nelze automaticky odečíst; případnou opravu skóre proveďte ručně.':'Body připsané tímto kolem se vítěznému týmu odečtou.';
+ if(!confirm('Začít tuto otázku znovu? Smažou se její odpovědi, Bank a křížky. '+scoreNote+' Ostatní kola zůstanou.'))return;
+ update(s=>{const old=s.rounds[s.index],t=s.teams.find(t=>t.id===old.winner);if(t)t.score-=old.award||0;s.rounds[s.index]=blankRound();s.active=s.teams[s.index%s.teams.length].id;s.screen='game';s.effect=null;ensureRoundTeams(s);});
+}
+function restartGameState(s){s.rounds=s.questions.map(blankRound);s.index=0;s.teams.forEach(t=>t.score=0);s.active=s.teams[0].id;s.effect=null;s.screen='rules';}
+function resetGame(){if(confirm('Resetovat celou hru? Všechna skóre, kola, Banky a křížky se vynulují. Otázky, počet a názvy týmů zůstanou.'))update(s=>{if(usesOriginalSurveyPoints(s.questions))s.questions=clone(DEFAULTS);restartGameState(s);});}
+function showResults(){
+ const pending=state.rounds.map((r,i)=>!r.settled&&(r.strikes>0||r.credited.some(Boolean))?i+1:null).filter(Boolean);
+ if(pending.length){toast('Nejprve dokončete rozehraná kola: '+pending.join(', ')+'.');return;}
+ if(state.index<state.questions.length-1&&!confirm('Vyhlásit výsledky už nyní, před poslední otázkou?'))return;
+ update(s=>{s.screen='results';s.effect=null;});
+}
+function setPresentation(screen){
+ if(screen==='results'){showResults();return;}
+ update(s=>{s.screen=screen;s.effect=null;if(screen==='game'){const r=ensureRoundTeams(s);s.active=r.settled?r.winner||r.owner:r.steal?r.challenger:r.owner;}});
+}
+function rankings(s=state){
+ const sorted=s.teams.map((t,i)=>({...t,order:i})).sort((a,b)=>b.score-a.score||a.order-b.order);
+ let rank=1;return sorted.map((t,i)=>{if(i>0&&t.score!==sorted[i-1].score)rank=i+1;return {...t,rank};});
+}
+function rulesSlide(){return node('section',{id:'rulesSlide',class:'rules-slide'},[
+ text('div','Jak se hraje','slide-title'),text('p','Školní varianta · 2–12 týmů · 6 odpovědí'+(state.questions.every(q=>q.scoring==='per100')?' · Zeptali jsme se 100 Randováků':' · body z ankety'),'slide-subtitle'),
+ node('div',{class:'rules-grid'},RULES.map(([title,description],i)=>node('article',{class:'rule-card'},[text('span',String(i+1).padStart(2,'0'),'rule-number'),node('div',{},[text('h2',title),text('p',description)])]))),
+ text('p','Hrající tým a jediného vyzyvatele vybírá moderátor. V týmu se můžete radit. Hraje se sada otázek z ankety bez násobičů. Případný ústní rozstřel řídí moderátor.','rules-footer'),
+ node('a',{href:RULES_SOURCE,target:'_blank',rel:'noopener',class:'rules-source',text:'Základ: pravidla ALBI Co na to Češi · upraveno pro Randovku'})
+]);}
+function resultsSlide(){
+ const order=rankings(),winners=order.filter(t=>t.rank===1),names=winners.length<=3?winners.map(t=>t.name).join(' a '):`${winners.length} týmů se stejným skóre`;
+ return node('section',{id:'resultsSlide',class:'results-slide'},[
+ text('div','Konečné výsledky','eyebrow'),text('h2',winners.length===1?'VÍTĚZOVÉ RANDOVKY':'SDÍLENÉ PRVNÍ MÍSTO','slide-title'),text('div',names,'winner-names'),text('p',`${order[0].score} bodů`,'winner-score'),
+ node('div',{class:'results-list'+(order.length>6?' two-columns':'')},order.map(t=>node('div',{class:'rank-row'+(t.rank===1?' first':'')},[text('span',t.rank+'.','rank-position'),text('span',t.name,'rank-name'),text('strong',t.score,'rank-points')]))),text('p','Díky za hru!','results-thanks')
+ ]);
+}
+function renderStandaloneRules(app){const w=node('div',{class:'show presentation'});w.append(node('div',{class:'show-tools'},[link('← Menu','menu','button quiet'),button('Celá obrazovka',()=>document.documentElement.requestFullscreen?.().catch(()=>toast('Použijte klávesu F11.')),'quiet')]),text('h1','CO NA TO RANDOVKA','show-logo'),rulesSlide());app.append(w);}
+function refreshStrikeControls(){
+ const r=state.rounds[state.index];$('strikeCount').textContent=`${r.strikes} / 3 křížky`;
+ $('strikeButton').disabled=r.strikes>=3||r.settled;
+ $('resetStrikesButton').disabled=r.settled;
+ $('failedStealButton').hidden=!r.steal||r.settled;
+ $('stealNotice').hidden=!r.steal;
+ $('stealNotice').textContent=r.steal?`Tři křížky zůstávají svítit. ${teamName(r.challenger)} má JEDINÝ pokus o krádež. Při správné odpovědi ji odhalte; při chybě použijte „Krádež nevyšla“. Původní tým: ${teamName(r.owner)}.`:'';
+ $('playingTeamLabel').textContent=r.steal?'Jediný vyzyvatel pro krádež':'Právě hraje';
+ const select=$('playingTeam');select.value=state.active||r.owner||state.teams[0].id;
+ for(const option of select.children)option.disabled=r.steal&&option.value===r.owner;
+ for(let i=0;i<6;i++){const control=$('answerButton'+i);if(control)control.textContent=r.revealed[i]?'Skrýt':r.steal?'Uznat krádež':'Odhalit';}
+ document.querySelectorAll('.manual-payout').forEach(b=>{b.disabled=r.settled||(b.getAttribute('data-team')!==r.owner&&(!r.steal||b.getAttribute('data-team')!==r.challenger));});
+ refreshConnection();
+}
+function saveDownload(name,value){const url=URL.createObjectURL(new Blob([value],{type:'application/json;charset=utf-8'}));const a=node('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+function header(label){return node('header',{class:'toolbar'},[row(link('← Menu','menu','button quiet small'),text('strong','RANDOVKA','eyebrow'),text('span',label,'muted')),text('span','','status connection')]);}
+function render(){
+ if(mode==='projector'&&state.screen==='game'&&$('board')){renderProjectorState();return;}
+ if((mode==='editor'&&$('json'))||(mode==='teams'&&$('teamSetup'))){refreshConnection();return;}
+ const app=$('app');app.replaceChildren();document.body.className=['projector','rules'].includes(mode)?'projector':'';
+ if(mode==='projector')renderProjector(app);else if(mode==='moderator')renderModerator(app);else if(mode==='editor')renderEditor(app);else if(mode==='teams')renderTeamSetup(app);else if(mode==='rules')renderStandaloneRules(app);else renderMenu(app);
+ refreshConnection();
+}
+function renderMenu(app){
+ const w=node('div',{class:'wrap menu'});w.append(text('div','Školní anketa · 11 kol · Zeptali jsme se 100 Randováků · 2–12 týmů','eyebrow'),text('h1','CO NA TO RANDOVKA','brand'),text('p','Jedna otázka. Šest odpovědí. Který tým vystihne, co si myslí ostatní?','menu-intro'));
+ if(usesOriginalSurveyPoints(state.questions))w.append(scoringUpgradeNotice());
+ const a=node('div',{class:'menu-actions'});
+ for(const [title,desc,target]of [['Spustit projektor (Diváci)','Tabule, Bank a skóre na velké plátno.','projector'],['Spustit ovládací panel (Moderátor)','Odpovědi a kompletní řízení hry.','moderator'],['Nastavení a import dat','Vlastní otázky, body a záloha dat.','editor']]){
+  const l=node('a',{href:'#'+target,target:'_blank',rel:'noopener',class:'button '+(target==='projector'?'gold':'')},[text('strong',title),text('span',desc)]);a.append(l);
+ }
+ w.append(panel(text('h2','Nejdřív připravte týmy'),text('p',`Počet týmů: ${state.teams.length}. Vyberte 2 až ${MAX_TEAMS} týmů a zadejte jejich názvy.`),row(link('Nastavit počet a názvy týmů','teams','button gold'),text('span',`${state.questions.length} otázek v uložené hře`,'muted'),link('Pravidla na jednu stránku','rules','button quiet'))),a,panel(text('h2','Připraveno na školní souboj'),text('p','1. Otevřete projektor a přesuňte jeho záložku na promítací obrazovku. 2. Otevřete panel moderátora. 3. Vyberte hrající tým a odhalujte odpovědi.'),text('p','Na projektoru zapněte zvuk jedním kliknutím a případně celou obrazovku. Odpovědi odhaluje pouze moderátor.','muted'),text('div','','status connection')),
+ text('p','Používejte stejný soubor a stejný profil prohlížeče v obou záložkách. U lokálních souborů (file://) není sdílení úložiště zaručeno každým prohlížečem. Před hrou ověřte zelený stav spojení a tlačítko „Otestovat spojení“. Pokud spojení nefunguje, otevřete soubor přes lokální HTTP server.','help'));
+ if(!sameQuestions(state.questions,DEFAULTS))w.append(panel(text('h2','Připravená anketa na stužkovák'),text('p','V tomto prohlížeči je uložená jiná sada otázek. Nový soubor obsahuje 11 kol z vaší ankety, s celými jmény učitelů a body pro vzorek 100 lidí.'),button('Načíst anketu na 100 lidí',loadBuiltIn,'gold')));
+ if(DEFAULTS.slice(7).some(q=>!state.questions.some(current=>current.question===q.question)))w.append(panel(text('h2','Nové otázky o třídách'),text('p','Doplňte čtyři nové otázky do uložené hry bez vynulování skóre a rozehraných kol.'),button('Přidat otázky o třídách bez resetu',addClassQuestions,'gold')));
+ app.append(w);
+}
+function nextTeamName(teams){
+ let n=1;while(teams.some(t=>t.name.toLocaleLowerCase('cs')===('Tým '+n).toLocaleLowerCase('cs')))n++;
+ return 'Tým '+n;
+}
+function configureTeams(s,names){
+ if(!Array.isArray(names)||names.length<2||names.length>MAX_TEAMS)throw Error(`Vyberte 2 až ${MAX_TEAMS} týmů.`);
+ const clean=names.map(v=>typeof v==='string'?v.trim():'');
+ if(clean.some(v=>!v||v.length>24))throw Error('Každý tým musí mít název dlouhý 1 až 24 znaků.');
+ if(new Set(clean.map(v=>v.toLocaleLowerCase('cs'))).size!==clean.length)throw Error('Každý tým musí mít jiný název.');
+ s.teams=clean.map((name,i)=>s.teams[i]?{...s.teams[i],name}:{id:uid(),name,score:0});
+ if(!s.teams.some(t=>t.id===s.active))s.active=s.teams[0].id;
+}
+
+function appendClassQuestions(s){
+ let added=0;
+ for(const question of DEFAULTS.slice(7))if(!s.questions.some(q=>q.question===question.question)){s.questions.push(clone(question));s.rounds.push(blankRound());added++;}
+ return added;
+}
+function addClassQuestions(){let added=0;if(update(s=>{added=appendClassQuestions(s);})){toast(added?`Přidáno ${added} otázek o třídách. Skóre i průběh hry zůstaly.`:'Všechny čtyři otázky už v této hře jsou.');}}
+
+function loadBuiltIn(){
+ if(!confirm('Načíst 11 kol upravených pro vzorek 100 lidí a zahájit novou hru? Všechna kola a skóre se vynulují. Názvy a počet týmů zůstanou.'))return;
+ if(update(s=>{s.questions=clone(DEFAULTS);s.rounds=DEFAULTS.map(blankRound);s.index=0;s.teams.forEach(t=>t.score=0);s.active=s.teams[0].id;s.effect=null;s.screen='rules';}))toast('Vybraná anketa načtena.');
+}
+function renderTeamSetup(app){
+ const w=node('div',{class:'wrap'});w.append(header('Počet a názvy týmů'));
+ const drafts=Array.from({length:MAX_TEAMS},(_,i)=>state.teams[i]?.name||'Tým '+(i+1));
+ const count=node('select',{id:'teamCount','aria-label':'Počet týmů'});
+ for(let i=2;i<=MAX_TEAMS;i++){const o=node('option',{value:i,text:i+' týmů'});o.selected=i===state.teams.length;count.append(o);}
+ const fields=node('div',{class:'setup-fields',id:'teamFields'});
+ function showFields(){
+  fields.replaceChildren();
+  for(let i=0;i<Number(count.value);i++){
+   const input=node('input',{type:'text',value:drafts[i],maxlength:'24',required:'','aria-label':'Název týmu '+(i+1),oninput:e=>{drafts[i]=e.target.value;teamDirty=true;}});
+   fields.append(node('label',{class:'setup-field'},[text('span','Tým '+(i+1)),input]));
+  }
+ }
+ count.addEventListener('change',()=>{teamDirty=true;showFields();});
+ const form=node('form',{id:'teamSetup',onsubmit:e=>{
+  e.preventDefault();const names=drafts.slice(0,Number(count.value));
+  try{configureTeams(clone(state),names);}catch(err){toast(err.message);return;}
+  if(names.length<state.teams.length&&!confirm('Odebrat poslední týmy včetně jejich případného skóre? Zbývající skóre i kola se zachovají.'))return;
+  if(update(s=>configureTeams(s,names))){teamDirty=false;location.hash='moderator';toast('Týmy uloženy.');}
+ }},[
+  text('h1','Kdo dnes hraje?','question'),
+  text('p',`Vyberte 2 až ${MAX_TEAMS} týmů a napište jejich názvy. Nastavení se okamžitě přenese na projektor.`,'muted'),
+  node('label',{for:'teamCount',text:'Počet týmů'}),count,fields,
+  node('div',{class:'row space'},[node('button',{type:'submit',text:'Uložit týmy a otevřít moderátora',class:'gold'}),link('Zpět do menu','menu','button quiet')]),
+  text('p','Přejmenování zachová body. Při snížení počtu se odebírají poslední týmy. Nové týmy začínají s nulou. Pro novou hru použijte reset v panelu moderátora.','help space')
+ ]);
+ showFields();w.append(node('section',{class:'panel'},[form]));app.append(w);
+}
+
+
+function renderModerator(app){
+ const q=state.questions[state.index],r=state.rounds[state.index],w=node('div',{class:'wrap'});w.append(header('Panel moderátora'));if(usesOriginalSurveyPoints(state.questions))w.append(scoringUpgradeNotice());
+ const screenName={rules:'Úvodní pravidla',game:'Herní tabule',results:'Vyhlášení výsledků'}[state.screen];
+ const controls=panel(text('h2','Co právě vidí publikum: '+screenName),row(button('Zobrazit pravidla',()=>setPresentation('rules'),'small',state.screen==='rules'),button('Spustit hru / zobrazit tabuli',()=>setPresentation('game'),'gold small',state.screen==='game'),button('Vyhlásit výsledky',showResults,'small',state.screen==='results'),link('Nastavit počet a názvy týmů','teams','button small'),button('Resetovat celou hru',resetGame,'danger small')));w.append(controls);
+ const left=panel(text('p',`Otázka ${state.index+1} / ${state.questions.length}`,'eyebrow'),text('h1',q.question,'question'));
+ if(q.note)left.append(text('p',q.note,'notice moderator-note'));
+ const answers=node('div',{class:'stack'});q.answers.forEach((a,i)=>{const control=button(r.revealed[i]?'Skrýt':r.settled?'Odhalit pro publikum':r.steal?'Uznat krádež':'Odhalit',()=>toggleAnswer(i),r.revealed[i]?'quiet':'gold');control.setAttribute('id','answerButton'+i);answers.append(node('div',{class:'answer-admin'+(r.revealed[i]?' open':'')},[text('span',i+1,'num'),text('span',a.text,'answer-text'),text('strong',a.points),control]));});left.append(answers);
+ const last=state.index===state.questions.length-1;
+ left.append(row(button('← Předchozí otázka',()=>navigate(-1),'space',state.index===0),button(last?'Vyhlásit výsledky →':'Další otázka →',()=>last?showResults():navigate(1),'gold space')),text('p','Po uhodnutí všech odpovědí nebo vyhodnocení krádeže se Bank připíše automaticky. Další odhalování po konci kola je pouze pro publikum.','help space'),button('Začít tuto otázku znovu',resetRound,'quiet small'));
+ if(r.settled)left.append(text('p',r.winner?`Kolo uzavřeno: ${teamName(r.winner)} získává ${r.award} bodů.`:'Kolo bylo uzavřeno v dřívější verzi hry.','notice'));
+ const teamSelect=node('select',{id:'playingTeam','aria-label':'Aktivní tým',onchange:e=>selectPlayingTeam(e.target.value)});teamSelect.disabled=r.settled;
+ state.teams.forEach(t=>{const o=node('option',{value:t.id,text:t.name});o.selected=t.id===(state.active||state.teams[0].id);o.disabled=r.steal&&t.id===r.owner;teamSelect.append(o);});
+ const strikeButton=button('❌ Přidat křížek',strike,'danger',r.strikes>=3||r.settled);strikeButton.setAttribute('id','strikeButton');
+ const strikeCount=text('p',`${r.strikes} / 3 křížky`,'space');strikeCount.setAttribute('id','strikeCount');strikeCount.setAttribute('aria-live','polite');
+ const resetStrikesButton=button('Opravit: vynulovat křížky',resetStrikes,'quiet small',r.settled);resetStrikesButton.setAttribute('id','resetStrikesButton');
+ const failed=button('❌ Krádež nevyšla — Bank původnímu týmu',failSteal,'danger space');failed.setAttribute('id','failedStealButton');failed.hidden=!r.steal||r.settled;
+ const stealNotice=text('p',r.steal?`Tři křížky zůstávají svítit. ${teamName(r.challenger)} má JEDINÝ pokus o krádež. Správný tip uznejte u odpovědi. Původní tým: ${teamName(r.owner)}.`:'','notice');stealNotice.setAttribute('id','stealNotice');stealNotice.hidden=!r.steal;
+ const label=text('label',r.steal?'Jediný vyzyvatel pro krádež':'Právě hraje');label.setAttribute('id','playingTeamLabel');
+ const right=panel(text('p','Bank aktuálního kola','eyebrow'),text('div',bank(),'bank-number'),text('p',r.settled?'Bank připsán. Kolo je uzavřené.':q.scoring==='per100'?'Body upravené pro vzorek 100 lidí. Bank získá jediný tým.':'Body podle importu. Bank získá jediný tým.','help'),label,teamSelect,strikeCount,row(strikeButton,resetStrikesButton),stealNotice,failed,
+ button('Přehrát velké X bez změny počtu',replayStrike,'quiet small space'));
+ const payouts=node('div',{class:'stack space'});state.teams.forEach(t=>{const b=button('Připsat Bank Týmu '+t.name,()=>{if(confirm('Ručně uzavřít kolo a připsat aktuální Bank týmu '+t.name+'? Běžné dohrání a krádež se vyhodnocují automaticky.'))award(t.id);},'gold manual-payout',r.settled||(t.id!==r.owner&&(!r.steal||t.id!==r.challenger)));b.setAttribute('data-team',t.id);payouts.append(b);});
+ const manual=node('details',{class:'space'},[text('summary','Ruční opravy Banku'),payouts,button('Vynulovat Bank',()=>{if(confirm('Vynulovat Bank? Odhalené odpovědi zůstanou viditelné.'))update(s=>s.rounds[s.index].credited.fill(false));},'quiet small space',bank()===0),text('p','Nouzové opravy pro moderátora. Při běžné hře se body připisují automaticky.','help space')]);
+ right.append(manual,button('Otestovat spojení s projektorem',replayStrike,'small space'));w.append(node('div',{class:'grid'},[left,right]));
+ const teams=panel(text('h2','Týmy a celkové skóre'),text('p','2 až 12 týmů. Opravu skóre zadejte jako kladný počet a použijte + nebo −.','help'));
+ state.teams.forEach(t=>{
+  const name=node('input',{type:'text',value:t.name,maxlength:'24','aria-label':'Název týmu '+t.name,required:''});
+  const form=node('form',{class:'team-name',onsubmit:e=>{e.preventDefault();const value=name.value.trim();if(value)update(s=>{const x=s.teams.find(x=>x.id===t.id);if(x)x.name=value;});}},[name,node('button',{type:'submit',text:'Uložit',class:'small'})]);
+  const amount=node('input',{type:'number',value:'10',min:'0',max:'1000000',step:'1','aria-label':'Počet bodů pro '+t.name});
+  const adjust=sign=>{const n=Number(amount.value);if(amount.value===''||!Number.isInteger(n)||n<0||n>1000000){toast('Zadejte celé číslo 0 až 1 000 000.');return;}update(s=>{const x=s.teams.find(x=>x.id===t.id);if(x)x.score+=sign*n;});};
+  teams.append(node('div',{class:'team-edit'},[node('div',{class:'team-top'},[form,text('strong',t.score+' b')]),row(amount,button('+ Přidat',()=>adjust(1),'small'),button('− Odečíst',()=>adjust(-1),'small'),button('Odebrat tým',()=>{if(confirm('Odebrat tým '+t.name+' včetně jeho skóre?'))update(s=>{if(s.teams.length<=2)return;s.teams=s.teams.filter(x=>x.id!==t.id);if(s.active===t.id)s.active=s.teams[0].id;});},'danger small',state.teams.length<=2))]));
+ });
+ teams.append(button('+ Přidat tým',()=>update(s=>{if(s.teams.length<MAX_TEAMS)s.teams.push({id:uid(),name:nextTeamName(s.teams),score:0});}),'gold',state.teams.length>=MAX_TEAMS));w.append(teams);app.append(w);
+}
+function renderProjector(app){
+ const w=node('div',{class:'show'}),tools=node('div',{class:'show-tools'});
+ tools.append(text('span','','status connection'),row(button(sound?'Vypnout zvuk':'Zapnout zvuk',async e=>{const control=e.currentTarget;try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('Prohlížeč nepodporuje zvuk.');audio=audio||new AC();await audio.resume();sound=!sound;control.textContent=sound?'Vypnout zvuk':'Zapnout zvuk';}catch(err){toast(err.message);}},'quiet'),button('Celá obrazovka',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('Celou obrazovku lze zapnout také klávesou F11.');}},'quiet'),link('Menu','menu','button quiet')));
+ w.append(tools,text('h1','CO NA TO RANDOVKA','show-logo'));
+ if(state.screen!=='game'){w.classList.toggle('presentation',true);w.append(state.screen==='rules'?rulesSlide():resultsSlide());app.append(w);$('bigStrike').hidden=true;clearTimeout(effectTimer);lastEffect=state.effect?.id;return;}
+ w.append(node('div',{id:'roundLabel',class:'round-label'}),node('div',{id:'showQuestion',class:'show-question'}));
+ const board=node('div',{id:'board',class:'board','aria-label':'Šest odpovědí'});
+ for(let i=0;i<6;i++)board.append(node('div',{id:'card'+i,class:'card'},[node('div',{class:'flip'},[text('div',i+1,'face front'),node('div',{class:'face back'},[node('span',{id:'answer'+i,class:'text'}),node('span',{id:'points'+i,class:'points'})])])]));
+ const strikes=node('div',{class:'strikes','aria-label':'Křížky kola'});for(let i=0;i<3;i++)strikes.append(text('span','✕','strike-slot'));
+ w.append(board,strikes,node('div',{id:'steal',class:'steal'}),node('div',{class:'show-bank'},[text('span','Bank kola'),node('strong',{id:'showBank'})]),node('div',{id:'showTeams',class:'show-teams'}));app.append(w);renderProjectorState();
+}
+function renderProjectorState(){
+ const q=state.questions[state.index],r=state.rounds[state.index];$('showQuestion').textContent=q.question;$('roundLabel').textContent=(q.scoring==='per100'?'Zeptali jsme se 100 Randováků · ':'')+`Otázka ${state.index+1} z ${state.questions.length}`;
+ q.answers.forEach((a,i)=>{const card=$('card'+i);card.classList.toggle('revealed',r.revealed[i]);card.setAttribute('aria-label',r.revealed[i]?`${a.text}: ${a.points} bodů`:`Zakrytá odpověď ${i+1}`);$('answer'+i).textContent=a.text;$('points'+i).textContent=a.points;const t=$('answer'+i);t.style.fontSize=a.text.length>65?'clamp(13px,1.45vw,24px)':a.text.length>38?'clamp(15px,1.8vw,28px)':'';});
+ document.querySelectorAll('.strike-slot').forEach((n,i)=>n.classList.toggle('active',i<r.strikes));$('showBank').textContent=bank();
+ $('steal').textContent=r.steal?'JEDINÝ POKUS O KRÁDEŽ: '+teamName(r.challenger):r.settled?(r.winner?teamName(r.winner)+' ZÍSKÁVÁ '+r.award+' BODŮ':'BANK PŘIPSÁN'):'';
+ const columns=Math.ceil(state.teams.length/Math.ceil(state.teams.length/6));$('showTeams').style.gridTemplateColumns=`repeat(${columns},minmax(0,1fr))`;document.querySelector('.show').classList.toggle('many-teams',state.teams.length>6);
+ $('showTeams').replaceChildren(...state.teams.map((t,i)=>node('div',{class:'show-team'+(t.id===(state.active||state.teams[0].id)?' active':'')},[text('span',t.name),text('strong',t.score)])));
+ if(state.effect?.id!==lastEffect){lastEffect=state.effect?.id;if(state.effect&&Date.now()-state.effect.at<3000)playStrike();}refreshConnection();
+}
+function playStrike(){
+ const x=$('bigStrike');x.style.animation='none';x.hidden=false;void x.offsetWidth;x.style.animation='';clearTimeout(effectTimer);effectTimer=setTimeout(()=>x.hidden=true,1250);
+ if(sound&&audio?.state==='running'){const osc=audio.createOscillator(),gain=audio.createGain(),now=audio.currentTime;osc.type='sawtooth';osc.frequency.setValueAtTime(145,now);osc.frequency.exponentialRampToValueAtTime(85,now+.55);gain.gain.setValueAtTime(.001,now);gain.gain.exponentialRampToValueAtTime(.12,now+.02);gain.gain.exponentialRampToValueAtTime(.001,now+.65);osc.connect(gain);gain.connect(audio.destination);osc.start(now);osc.stop(now+.7);osc.onended=()=>{osc.disconnect();gain.disconnect();};}
+}
+function renderEditor(app){
+ const w=node('div',{class:'wrap'});w.append(header('Nastavení a import dat'));
+ const json=node('textarea',{id:'json',spellcheck:'false','aria-label':'Otázky ve formátu JSON',oninput:()=>editorDirty=true});json.value=JSON.stringify(state.questions,null,2);
+ const message=text('p','','help');message.setAttribute('role','status');
+ const validate=()=>{try{const data=validateQuestions(JSON.parse(json.value));message.textContent=`V pořádku: ${data.length} otázek, každá má 6 odpovědí.`;message.className='good';return data;}catch(e){message.textContent=e.message;message.className='bad';return null;}};
+ const save=()=>{const data=validate();if(!data)return;if(!confirm('Uložit otázky a zahájit novou hru? Všechna kola, Bank a skóre týmů se vynulují. Názvy týmů zůstanou.'))return;if(update(s=>{s.questions=data;s.rounds=data.map(blankRound);s.index=0;s.teams.forEach(t=>t.score=0);s.active=s.teams[0].id;s.effect=null;s.screen='rules';})){editorDirty=false;toast('Otázky uloženy, hra připravena.');}};
+ const file=node('input',{type:'file',accept:'.json,application/json','aria-label':'Načíst JSON ze souboru',onchange:async e=>{const f=e.target.files[0];if(!f)return;if(f.size>2000000){toast('Soubor je příliš velký. Limit jsou 2 MB.');return;}try{json.value=await f.text();editorDirty=true;validate();}catch{toast('Soubor nelze přečíst.');}}});
+ w.append(panel(text('h1','Vaše otázky. Vaše show.','question'),text('p','Vložte JSON ve formátu níže. Každá otázka má přesně 6 odpovědí. Body jsou nezáporná celá čísla a nemusí dávat součet 100. Pořadí odpovědí se zachová.','muted'),file,json,message,row(button('Načíst vybranou anketu do editoru',()=>{if(editorDirty&&!confirm('Nahradit rozepsaný JSON připravenou anketou?'))return;json.value=JSON.stringify(DEFAULTS,null,2);editorDirty=true;validate();}),link('Nastavit týmy','teams','button quiet'),button('Zkontrolovat JSON',validate),button('Uložit do localStorage',save,'gold'),button('Stáhnout uložené otázky',()=>saveDownload('randovka-otazky.json',JSON.stringify(state.questions,null,2)),'quiet')),text('p','Import mění celou sadu otázek. Před uložením si můžete stáhnout zálohu celé hry. Importovaný text se vždy zobrazuje bezpečně jako text.','help space')));
+ const restore=node('input',{type:'file',accept:'.json,application/json','aria-label':'Obnovit zálohu celé hry',onchange:async e=>{const control=e.currentTarget,f=control.files[0];if(!f)return;try{if(f.size>3000000)throw Error('Limit zálohy jsou 3 MB.');const saved=validateState(JSON.parse(await f.text()));if(!confirm('Nahradit celou hru touto zálohou, včetně týmů a skóre?'))return;if(update(s=>{const rev=s.revision;Object.assign(s,saved);s.revision=rev;s.effect=null;})){editorDirty=false;json.value=JSON.stringify(state.questions,null,2);}}catch(err){toast('Zálohu nelze obnovit: '+err.message);}control.value='';}});
+ w.append(panel(text('h2','Záloha hry'),row(button('Stáhnout zálohu celé hry',()=>saveDownload('randovka-zaloha.json',JSON.stringify(state,null,2)))),text('label','Obnovit celou hru ze zálohy'),restore,text('p','Výchozí sada obsahuje 11 otázek z dodané ankety. Body jsou uvedené pro vzorek 100 odpovědí. Původní hlasy jsou uložené jako rawVotes, skutečný počet respondentů jako respondents a body mimo šestici jako otherPoints. Součet tabule a ostatních odpovědí dává 100. Poznámka „note“ je viditelná pouze moderátorovi. Záporné skóre je povoleno pro ruční opravy a penalizace.','help space')));app.append(w);
+}
+function refreshConnection(){
+ let projectors=0,moderators=0;for(const [id,p]of peers){if(Date.now()-p.at>7000){peers.delete(id);continue;}if(p.mode==='projector')projectors++;if(p.mode==='moderator')moderators++;}
+ const connected=mode==='projector'?moderators>0:projectors>0;
+ const message=mode==='projector'?(connected?'● Moderátor připojen':'○ Čekám na moderátora'):(connected?`● Projektor připojen (${projectors})`:'○ Projektor není připojen');
+ document.querySelectorAll('.connection').forEach(n=>{n.textContent=storageOK?message:'Úložiště není dostupné';n.className='status connection '+(connected?'good':'muted');});
+}
+function heartbeat(){try{localStorage.setItem(PRESENCE+instance,JSON.stringify({mode,at:Date.now()}));}catch{storageOK=false;}refreshConnection();}
+function route(){
+ const next=location.hash.slice(1);if(((mode==='editor'&&editorDirty&&next!=='editor')||(mode==='teams'&&teamDirty&&next!=='teams'))&&!confirm('Opustit stránku bez uložení rozepsaných změn?')){history.replaceState(null,'','#'+mode);return;}
+ mode=['projector','moderator','editor','teams','rules'].includes(next)?next:'menu';editorDirty=false;teamDirty=false;$('app').replaceChildren();$('bigStrike').hidden=true;lastEffect=state.effect?.id;render();heartbeat();
+}
+window.addEventListener('storage',e=>{
+ if(e.key===KEY){try{if(!e.newValue){toast('Úložiště hry bylo vymazáno. Obnovte stránku.');return;}state=validateState(JSON.parse(e.newValue));render();}catch(err){toast('Nelze načíst změnu: '+err.message);}}
+ else if(e.key?.startsWith(PRESENCE)){const id=e.key.slice(PRESENCE.length);if(!e.newValue)peers.delete(id);else try{const p=JSON.parse(e.newValue);if(p&&typeof p.mode==='string'&&Number.isFinite(p.at))peers.set(id,p);}catch{}refreshConnection();}
+});
+window.addEventListener('hashchange',route);
+window.addEventListener('beforeunload',e=>{if(editorDirty||teamDirty){e.preventDefault();e.returnValue='';}});
+window.addEventListener('pagehide',()=>{try{localStorage.removeItem(PRESENCE+instance);}catch{}});
+window.addEventListener('pageshow',()=>{if(state)heartbeat();});
+try{
+ const probe=KEY+'.probe.'+instance;localStorage.setItem(probe,'1');localStorage.removeItem(probe);
+ state=read();if(localStorage.getItem(KEY)!==JSON.stringify(state))localStorage.setItem(KEY,JSON.stringify(state));
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(PRESENCE))try{const p=JSON.parse(localStorage.getItem(k));if(p&&Date.now()-p.at<7000)peers.set(k.slice(PRESENCE.length),p);}catch{}}
+ route();setInterval(heartbeat,2000);
+}catch(err){
+ storageOK=false;$('app').append(node('div',{class:'wrap'},[panel(text('h1','Hru nelze načíst'),text('p',err.message),text('p','Povolte lokální úložiště prohlížeče. Pokud jsou uložená data poškozená, nejprve si stáhněte jejich kopii a potom je vymažte.'),row(button('Stáhnout původní uložená data',()=>{try{saveDownload('randovka-puvodni-data.json',localStorage.getItem(KEY)??localStorage.getItem(LEGACY_KEY)??localStorage.getItem(OLDEST_KEY)??'null');}catch(e){toast(e.message);}}),button('Vymazat poškozenou hru',()=>{if(confirm('Smazat uloženou hru a načíst připravenou anketu?'))try{localStorage.setItem(KEY,JSON.stringify(initial()));location.reload();}catch(e){toast(e.message);}},'danger')))]));
+}
+</script>
+</body>
+</html>
