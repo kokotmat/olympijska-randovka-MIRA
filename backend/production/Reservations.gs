@@ -160,7 +160,7 @@ function openGate() {
 function closeGate() { owner_();props_().setProperty('SCANNER_OPEN','false'); }
 function diagnostics() {
   owner_();const c=cfg_();let error='OK';try{validateConfig_(c,c.mode==='live');usage_(rows_(sheet_(c)));}catch(e){error=e.message;}
-  SpreadsheetApp.getUi().alert('Režim: '+c.mode+'\nProdej: '+c.open+'\nOdbavení: '+c.gate+'\nKontrola: '+error+'\nZbývá adresátů e-mailů dnes: '+MailApp.getRemainingDailyQuota()+'\nPoslední banka: '+(props_().getProperty('BANK_LAST_OK')||'neověřena')+'\nKontrola vstupenek: '+c.url+'?action=scanner');
+  SpreadsheetApp.getUi().alert('Spouštějící účet: '+Session.getEffectiveUser().getEmail()+'\nRežim: '+c.mode+'\nProdej: '+c.open+'\nOdbavení: '+c.gate+'\nKontrola: '+error+'\nZbývá adresátů e-mailů dnes: '+MailApp.getRemainingDailyQuota()+'\nPoslední banka: '+(props_().getProperty('BANK_LAST_OK')||'neověřena')+'\nKontrola vstupenek: '+c.url+'?action=scanner');
 }
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('🎟️ Randovka – rezervace')
