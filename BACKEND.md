@@ -1,8 +1,10 @@
 # Napojení Google Apps Script backendu
 
-Frontend v app.js má nastavený adaptér na dodanou webovou aplikaci Apps Script a reservationMode: "test". V tomto režimu načítá dostupné stoly přes GET ?action=getTables a zobrazuje přehled testovací objednávky. Žádný POST se neodesílá: test nezapisuje objednávky, neblokuje místa ani nespouští e-maily nebo PDF. Také přímé volání adapter.submit() je v testovacím a neznámém režimu zablokováno před síťovým požadavkem.
+Frontend v app.js má reservationMode: "test" a reservationTestEndpoint: null. Výchozí režim načítá dostupné stoly z dodané webové aplikace přes GET ?action=getTables a zobrazuje pouze lokální přehled. Žádný POST se v tomto nastavení neodesílá. Přímé volání adapter.submit() je v testovacím a neznámém režimu zablokováno před síťovým požadavkem.
 
-Přístupná tabulka se jmenuje „Rezervační system listky.randovka - zatim nastaveno jako /test“. Samotný název ale nedokazuje, že dodaný endpoint zapisuje právě do ní nebo že je jeho odesílání e-mailů v testovacím režimu. Zdrojový kód Apps Scriptu není součástí repozitáře. Před skutečným testovacím zápisem je nutné ověřit doPost, cílové ID tabulky a vedlejší účinky skriptu; před ostrým nasazením navíc ceny, kapacity a odpovědi podle níže uvedeného kontraktu.
+Pro skutečný zápis testovacích objednávek je připraven samostatný backend backend/TestReservations.gs a metoda adapter.submitTest(). Postup je v backend/TESTOVANI.md. Testovací endpoint musí před POST potvrdit protokol randovka-test-v1, samostatný list Test_rezervace a vypnuté e-maily, platby a vstupenky. Výchozí konfigurace žádný takový endpoint neobsahuje a nebylo provedeno jeho vzdálené nasazení.
+
+Přístupná tabulka se jmenuje „Rezervační system listky.randovka - zatim nastaveno jako /test“. Dodaný původní Apps Script byl zkontrolován: nemá testovací režim, používá aktivní list a po zápisu objednávky odesílá skutečné platební instrukce. Jeho platby, vstupenky a tajné údaje nejsou součástí testovacího backendu ani této veřejné kopie zdrojů. Název tabulky s /test sám o sobě neodděluje ostré a testovací rezervace.
 
 ## Nasazení
 
