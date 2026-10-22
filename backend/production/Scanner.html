@@ -31,7 +31,9 @@ async function rpc(method,data){let timer,controller;try{return await Promise.ra
   const endpoint=document.querySelector('meta[name="randovka-backend"]').content;
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint)){reject(new Error('Chybí adresa nasazeného backendu.'));return;}
   controller=new AbortController();
-  fetch(endpoint,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'follow',signal:controller.signal,headers:{'Content-Type':'text/plain;charset=UTF-8'},
+  const gateway=document.querySelector('meta[name="randovka-api"]')?.content;
+  if(gateway&&gateway!=='/api/scanner'){reject(new Error('Neplatná adresa brány skeneru.'));return;}
+  fetch(gateway||endpoint,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'follow',signal:controller.signal,headers:{'Content-Type':'text/plain;charset=UTF-8'},
    body:JSON.stringify({...data,action:method==='login'?'scannerLogin':'scan'})})
    .then(response=>{if(!response.ok)throw new Error('HTTP');return response.json();}).then(resolve).catch(()=>reject(new Error('Spojení s backendem selhalo. Ověřte nasazení, přístup a CORS.')));return;
  }

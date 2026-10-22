@@ -14,5 +14,5 @@ fs.writeFileSync(destination,source);
 fs.writeFileSync(path.join(root,'Randovka_PRODUKCE.gs'),source);
 // Also create an inspectable local scanner preview; it cannot authenticate outside Apps Script.
 fs.writeFileSync(path.join(root,'Scanner.preview.html'),html);
-fs.writeFileSync(path.resolve(root,'../../kontrola-vstupenek.html'),html);
+fs.writeFileSync(path.resolve(root,'../../kontrola-vstupenek.html'),html.replace('<meta name="randovka-backend"','<meta name="randovka-api" content="/api/scanner"><meta name="randovka-backend"'));
 console.log('Built '+destination+' ('+Buffer.byteLength(source)+' bytes).');
