@@ -83,7 +83,7 @@ function setupSystem() {
     const defaults={RUN_MODE:'test',SALES_OPEN:'false',SCANNER_OPEN:'false',IBAN:'CZ2720100000002403476467',
       REPLY_TO:'listky.randovka@gmail.com',TEST_SEND_EMAILS:'false',
       SESSION_SECRET:Utilities.getUuid()+Utilities.getUuid(),
-      SCRIPT_URL:'https://script.google.com/macros/s/AKfycbxtdKDQLvyaLOAqQFZ1gF8y7tkmxOYyrAgAZcGnp_ZetpX6r2F4CV1mYmMo_g_K4Nhk/exec',
+      SCRIPT_URL:'https://script.google.com/macros/s/AKfycbxeGpwuIH_j1BVdnh2Z7RcRzHhqV1uKxkEl7Qo1WZlK18Fid34421P8HFjbvzF0hBD9/exec',
       FIO_FROM_DATE:Utilities.formatDate(new Date(),R.timezone,'yyyy-MM-dd')};
     Object.keys(defaults).forEach(k=>{if(!values[k])p.setProperty(k,defaults[k]);});
     const book=book_();
