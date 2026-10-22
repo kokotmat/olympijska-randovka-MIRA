@@ -1,5 +1,7 @@
 /* Frontend configuration. Existing Apps Script payload names are retained. */
 window.PLES_CONFIG = {
+  "reservationMode": "test",
+  "reservationTestEndpoint": null,
   "sponsors": [
     {
       "name": "Jablotron",
@@ -32,13 +34,82 @@ window.PLES_CONFIG = {
       "url": "https://www.pivovarsvijany.cz/"
     }
   ],
-  "reservationAdapter": null
+  "reservationAdapter": {
+    endpoint: 'https://script.google.com/macros/s/AKfycbxtdKDQLvyaLOAqQFZ1gF8y7tkmxOYyrAgAZcGnp_ZetpX6r2F4CV1mYmMo_g_K4Nhk/exec',
+    async getTables() {
+      const testEndpoint = window.PLES_CONFIG.reservationMode === 'test' && window.PLES_CONFIG.reservationTestEndpoint;
+      const url = new URL(testEndpoint || this.endpoint);
+      url.searchParams.set('action', 'getTables');
+      const response = await fetch(url, { redirect: 'follow' });
+      if (!response.ok) throw new Error('Nepodařilo se načíst stoly.');
+      const data = await response.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Neplatný seznam stolů.');
+      }
+      if (data.status === 'error') throw new Error(data.message || 'Chyba načítání.');
+      if (Object.values(data).some(seats => !Number.isInteger(seats) || seats < 0)) {
+        throw new Error('Neplatné kapacity stolů.');
+      }
+      return data;
+    },
+    async submitTest(payload, requestId) {
+      const config = window.PLES_CONFIG;
+      if (config.reservationMode !== 'test' || !config.reservationTestEndpoint) {
+        throw new Error('Testovací backend není nastaven.');
+      }
+      const url = new URL(config.reservationTestEndpoint);
+      if (url.origin !== 'https://script.google.com' || !/^\/macros\/s\/[^/]+\/exec$/.test(url.pathname)) {
+        throw new Error('Neplatná adresa testovacího backendu.');
+      }
+      url.searchParams.set('action', 'capabilities');
+      const check = await fetch(url, { redirect: 'follow' });
+      if (!check.ok) throw new Error('Testovací backend není dostupný.');
+      const capabilities = await check.json();
+      const supportedTestBackend=capabilities&&((capabilities.protocol==='randovka-test-v1'&&capabilities.sheet==='Test_rezervace')||
+        (capabilities.protocol==='randovka-reservations-v1'&&capabilities.sheet==='Test_rezervace_PRO'));
+      if (!capabilities || capabilities.status !== 'success' || capabilities.mode !== 'test' ||
+          !supportedTestBackend ||
+          capabilities.emails !== false || capabilities.payments !== false || capabilities.tickets !== false) {
+        throw new Error('Backend nepotvrdil oddělený testovací režim. Objednávka nebyla odeslána.');
+      }
+      const response = await fetch(config.reservationTestEndpoint, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify({ ...payload, mode: 'test', requestId })
+      });
+      if (!response.ok) throw new Error('Testovací objednávku se nepodařilo odeslat.');
+      const data = await response.json();
+      if (!data || data.status !== 'success' || data.mode !== 'test' || typeof data.testId !== 'string') {
+        throw new Error(data && data.message || 'Testovací objednávka nebyla potvrzena.');
+      }
+      return data;
+    },
+    async submit(payload) {
+      if (window.PLES_CONFIG.reservationMode !== 'live') {
+        throw new Error('Testovací režim: objednávky se neodesílají.');
+      }
+      const response = await fetch(this.endpoint, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Objednávku se nepodařilo odeslat.');
+      const data = await response.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Neplatná odpověď rezervačního systému.');
+      }
+      if (data.status !== 'success') throw new Error(data.message || 'Rezervace nebyla přijata.');
+      if (data.mode !== 'live') throw new Error('Backend nepotvrdil ostrý režim. Skutečná rezervace nebyla potvrzena.');
+      return data;
+    }
+  }
 };
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
   const { studentsData, topTeachersData } = window.PLES_DATA;
   const config = window.PLES_CONFIG;
+  const testMode = config.reservationMode !== 'live';
   const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials = name => name.split(' ').map(part=>part[0]).slice(0,2).join('');
   function photo(person, lazy = true) {
@@ -143,7 +214,7 @@ window.PLES_CONFIG = {
     });
     $('sponsor-logos').replaceChildren(track);
   }
-  let count=1, tables={}, tableRequest=0;
+  let count=1, tables={}, tableRequest=0, pendingTest=null;
   const money=value=>new Intl.NumberFormat('cs-CZ').format(value)+' Kč';
   const selectedType=()=>document.querySelector('input[name="ticketType"]:checked').value;
   function populateTables(){
@@ -179,7 +250,12 @@ window.PLES_CONFIG = {
   $('plus').addEventListener('click',()=>{count=Math.min(10,count+1);updateTickets();});
   document.querySelectorAll('input[name="ticketType"]').forEach(radio=>radio.addEventListener('change',()=>{updateTickets();if(selectedType()==='450')loadTables();}));
   $('reservation-modal').querySelector('.dialog-done').addEventListener('click',()=>$('reservation-modal').close());
-  if(config.reservationAdapter){document.querySelector('.submit').textContent='Dokončit rezervaci';document.querySelector('.submit + .form-note').textContent='Vstupenky vám zašleme na uvedený e-mail.';}
+  if(config.reservationAdapter){
+    document.querySelector('.submit').textContent=testMode?(config.reservationTestEndpoint?'Uložit testovací rezervaci':'Zkontrolovat testovací rezervaci'):'Dokončit rezervaci';
+    document.querySelector('.submit + .form-note').textContent=testMode
+      ?(config.reservationTestEndpoint?'Testovací režim. Objednávka se uloží pouze do testovacího listu. Platby, e-maily ani platné vstupenky se nevytvářejí.':'Testovací režim. Volná místa se načítají ze systému; objednávky, platby ani e-maily se neodesílají.')
+      :'Platební instrukce obdržíte e-mailem. Vstupenky zašleme po přijetí platby.';
+  }
   $('ticket-form').addEventListener('submit',async event=>{
     event.preventDefault();
     const seating=selectedType()==='450';
@@ -188,16 +264,34 @@ window.PLES_CONFIG = {
     if(config.reservationAdapter&&seating&&(!payload.table||Number(tables[payload.table])<count)){$('form-status').textContent='Vyberte stůl s dostatkem volných míst.';return;}
     const rows=[['Jméno',payload.name],['E-mail',payload.email],['Vstupenka',payload.ticketType],['Počet',payload.count],['Stůl',payload.table||(seating?'Bude vybrán při spuštění rezervací':'Bez místenky')],['PDF',payload.oddelenePdf?'Samostatné soubory':'Společný soubor'],['Celkem',money(payload.totalPrice)]];
     $('reservation-summary').innerHTML=rows.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('');
-    if(!config.reservationAdapter){$('reservation-modal').showModal();return;}
+    if(!config.reservationAdapter||(testMode&&!config.reservationTestEndpoint)){
+      $('reservation-heading').textContent='Testovací rezervace připravena';
+      document.querySelector('.preview-notice').textContent='Toto je test. Objednávka nebyla odeslána, místo není rezervováno a žádný e-mail ani PDF se neposílá.';
+      $('reservation-modal').showModal();return;
+    }
     const submit=document.querySelector('.submit');submit.disabled=true;submit.textContent='Odesílám…';$('form-status').textContent='';
     try{
-      const result=await config.reservationAdapter.submit(payload);
+      const fingerprint=JSON.stringify(payload);
+      const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(fingerprint))),byte=>byte.toString(16).padStart(2,'0')).join('');
+      const storageKey='randovka-request:'+config.reservationMode+':'+digest;
+      if(!pendingTest||pendingTest.fingerprint!==fingerprint){
+        let previous=null;try{previous=sessionStorage.getItem(storageKey);}catch(_){}
+        pendingTest={fingerprint,id:previous||crypto.randomUUID()};
+        try{sessionStorage.setItem(storageKey,pendingTest.id);}catch(_){}
+      }
+      const result=testMode?await config.reservationAdapter.submitTest(payload,pendingTest.id):await config.reservationAdapter.submit({...payload,requestId:pendingTest.id});
       if(result.status!=='success')throw new Error(result.message||'Rezervace nebyla přijata.');
-      $('reservation-heading').textContent='Objednávka přijata!';
-      document.querySelector('.preview-notice').textContent='Vaše objednávka byla přijata. Další informace obdržíte e-mailem.';
+      if(result.reservationStatus&&['Zrušeno','Zrušeno - Nezaplaceno','Pozdní platba – ruční kontrola'].includes(result.reservationStatus)){
+        try{sessionStorage.removeItem(storageKey);}catch(_){}pendingTest=null;
+        throw new Error('Původní rezervace již není aktivní. Pro novou rezervaci formulář odešlete znovu.');
+      }
+      $('reservation-heading').textContent=testMode?'Testovací rezervace uložena':'Objednávka přijata!';
+      document.querySelector('.preview-notice').textContent=testMode?'Test byl uložen do samostatného testovacího listu. Bez platby, e-mailu a platné vstupenky.':'Vaše objednávka byla přijata. Další informace obdržíte e-mailem.';
+      pendingTest=null;
+      try{sessionStorage.removeItem(storageKey);}catch(_){}
       $('reservation-modal').showModal();$('ticket-form').reset();count=1;tables={};updateTickets();
     }catch(error){$('form-status').textContent='Chyba při rezervaci: '+error.message;}
-    finally{submit.disabled=false;submit.textContent='Dokončit rezervaci';}
+    finally{submit.disabled=false;submit.textContent=testMode?'Uložit testovací rezervaci':'Dokončit rezervaci';}
   });
   $('buyer-name').addEventListener('input',()=>$('buyer-name').setCustomValidity(''));
   updateTickets();
