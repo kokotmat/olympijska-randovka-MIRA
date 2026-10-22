@@ -32,7 +32,38 @@ window.PLES_CONFIG = {
       "url": "https://www.pivovarsvijany.cz/"
     }
   ],
-  "reservationAdapter": null
+  "reservationAdapter": {
+    endpoint: 'https://script.google.com/macros/s/AKfycbxtdKDQLvyaLOAqQFZ1gF8y7tkmxOYyrAgAZcGnp_ZetpX6r2F4CV1mYmMo_g_K4Nhk/exec',
+    async getTables() {
+      const url = new URL(this.endpoint);
+      url.searchParams.set('action', 'getTables');
+      const response = await fetch(url, { redirect: 'follow' });
+      if (!response.ok) throw new Error('Nepodařilo se načíst stoly.');
+      const data = await response.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Neplatný seznam stolů.');
+      }
+      if (data.status === 'error') throw new Error(data.message || 'Chyba načítání.');
+      if (Object.values(data).some(seats => !Number.isInteger(seats) || seats < 0)) {
+        throw new Error('Neplatné kapacity stolů.');
+      }
+      return data;
+    },
+    async submit(payload) {
+      const response = await fetch(this.endpoint, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Objednávku se nepodařilo odeslat.');
+      const data = await response.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Neplatná odpověď rezervačního systému.');
+      }
+      if (data.status !== 'success') throw new Error(data.message || 'Rezervace nebyla přijata.');
+      return data;
+    }
+  }
 };
 (() => {
   'use strict';
