@@ -1,5 +1,6 @@
 /* Frontend configuration. Existing Apps Script payload names are retained. */
 window.PLES_CONFIG = {
+  "reservationMode": "test",
   "sponsors": [
     {
       "name": "Jablotron",
@@ -50,6 +51,9 @@ window.PLES_CONFIG = {
       return data;
     },
     async submit(payload) {
+      if (window.PLES_CONFIG.reservationMode !== 'live') {
+        throw new Error('Testovací režim: objednávky se neodesílají.');
+      }
       const response = await fetch(this.endpoint, {
         method: 'POST', redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
@@ -70,6 +74,7 @@ window.PLES_CONFIG = {
   const $ = id => document.getElementById(id);
   const { studentsData, topTeachersData } = window.PLES_DATA;
   const config = window.PLES_CONFIG;
+  const testMode = config.reservationMode !== 'live';
   const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials = name => name.split(' ').map(part=>part[0]).slice(0,2).join('');
   function photo(person, lazy = true) {
@@ -210,7 +215,12 @@ window.PLES_CONFIG = {
   $('plus').addEventListener('click',()=>{count=Math.min(10,count+1);updateTickets();});
   document.querySelectorAll('input[name="ticketType"]').forEach(radio=>radio.addEventListener('change',()=>{updateTickets();if(selectedType()==='450')loadTables();}));
   $('reservation-modal').querySelector('.dialog-done').addEventListener('click',()=>$('reservation-modal').close());
-  if(config.reservationAdapter){document.querySelector('.submit').textContent='Dokončit rezervaci';document.querySelector('.submit + .form-note').textContent='Vstupenky vám zašleme na uvedený e-mail.';}
+  if(config.reservationAdapter){
+    document.querySelector('.submit').textContent=testMode?'Zkontrolovat testovací rezervaci':'Dokončit rezervaci';
+    document.querySelector('.submit + .form-note').textContent=testMode
+      ?'Testovací režim. Volná místa se načítají ze systému; objednávky, platby ani e-maily se neodesílají.'
+      :'Vstupenky vám zašleme na uvedený e-mail.';
+  }
   $('ticket-form').addEventListener('submit',async event=>{
     event.preventDefault();
     const seating=selectedType()==='450';
@@ -219,7 +229,11 @@ window.PLES_CONFIG = {
     if(config.reservationAdapter&&seating&&(!payload.table||Number(tables[payload.table])<count)){$('form-status').textContent='Vyberte stůl s dostatkem volných míst.';return;}
     const rows=[['Jméno',payload.name],['E-mail',payload.email],['Vstupenka',payload.ticketType],['Počet',payload.count],['Stůl',payload.table||(seating?'Bude vybrán při spuštění rezervací':'Bez místenky')],['PDF',payload.oddelenePdf?'Samostatné soubory':'Společný soubor'],['Celkem',money(payload.totalPrice)]];
     $('reservation-summary').innerHTML=rows.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('');
-    if(!config.reservationAdapter){$('reservation-modal').showModal();return;}
+    if(!config.reservationAdapter||testMode){
+      $('reservation-heading').textContent='Testovací rezervace připravena';
+      document.querySelector('.preview-notice').textContent='Toto je test. Objednávka nebyla odeslána, místo není rezervováno a žádný e-mail ani PDF se neposílá.';
+      $('reservation-modal').showModal();return;
+    }
     const submit=document.querySelector('.submit');submit.disabled=true;submit.textContent='Odesílám…';$('form-status').textContent='';
     try{
       const result=await config.reservationAdapter.submit(payload);
