@@ -137,5 +137,8 @@ const legacy=live.data.at(-1);
 assert.equal(legacy[8],legacyHash);assert.equal(legacy[6],'1234567890');assert.equal(legacy[16],'LEGACY – ověřit');assert.equal(legacy[17],'LEGACY – ověřit');
 assert.ok(legacy[14].startsWith('LEGACY-'));
 live.data[0][0]='wrong header';assert.throws(()=>context.setupSystem(),/hlavičky/);live.data[0][0]='Timestamp';
+context.SpreadsheetApp.getUi=()=>{throw new Error('Cannot call SpreadsheetApp.getUi() from this context.');};
+assert.doesNotThrow(()=>context.setupSystem());
+assert.match(context.diagnostics(),/Spouštějící účet/);
 assert.equal(lockHeld,false);
 console.log('PASS: production reservations, prices, request idempotency, capacity, inputs, IBANs, owner checks, signed sessions, unpaid/used/concurrent scans, no GET mutation, privacy, Fio split payments and deduplication, bank outage/expiry/late payments, PDF mail queue and ambiguous-send protection, real local QR encode/decode.');

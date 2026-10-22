@@ -7,7 +7,7 @@ OLYMPIJSKÁ RANDOVKA – REZERVACE A KONTROLA VSTUPENEK
    Pro ostré platby pak nastav NOVÝ FIO_TOKEN. Tajné hodnoty nedávej do zdrojů ani chatu.
 4. Spusť setupSystem a uděl oprávnění. IBAN CZ27 2010 0000 0024 0347 6467 je přednastaven.
 5. Aktualizuj verzi existující webové aplikace. Pro jinou adresu oprav SCRIPT_URL ve vlastnostech.
-6. Otevři tabulku znovu → menu „Randovka – rezervace“ → Diagnostika → Nainstalovat automatiku.
+6. V projektu připojeném k tabulce použij menu „Randovka – rezervace“. V samostatném projektu spusť v editoru diagnostics a installAutomation.
 7. Výchozí RUN_MODE=test. Prodej a odbavení otevři jednotlivě z menu, stále pouze pro test.
 8. Zkontroluj testovací objednávku, simulaci platby, skutečné testovací PDF a sken na telefonu.
 9. Kamera: samostatný kontrola-vstupenek.html na HTTPS webu, nebo /exec?action=scanner.

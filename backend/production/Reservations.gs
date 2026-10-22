@@ -15,6 +15,8 @@ const R = Object.freeze({
 });
 
 function props_() { return PropertiesService.getScriptProperties(); }
+function ui_() { try{return SpreadsheetApp.getUi();}catch(_){return null;} }
+function notify_(message) { const ui=ui_();if(ui)ui.alert(message);else console.log(message);return message; }
 function cfg_() {
   const p=props_().getProperties();
   const mode=p.RUN_MODE || 'test';
@@ -121,7 +123,7 @@ function setupSystem() {
       if(s.getLastRow()===0)s.appendRow(['ID transakce','Datum','VS','Haléře','Měna']);
     });
   });
-  SpreadsheetApp.getUi().alert('Připraveno. Prodej nebyl zapnut. Doplňte Script Properties a přečtěte návod.');
+  notify_('Připraveno. Prodej nebyl zapnut. Doplňte Script Properties a přečtěte návod.');
 }
 
 function validateConfig_(c, live) {
@@ -141,12 +143,13 @@ function installAutomation() {
   owner_();validateConfig_(cfg_(),cfg_().mode==='live');
   const existing=ScriptApp.getProjectTriggers();
   if(!existing.some(t=>t.getHandlerFunction()==='maintenance_'))ScriptApp.newTrigger('maintenance_').timeBased().everyMinutes(1).create();
-  SpreadsheetApp.getUi().alert('Automatika nastavena. Prodej zůstává v aktuálním režimu.');
+  notify_('Automatika nastavena. Prodej zůstává v aktuálním režimu.');
 }
 function openSales() {
   owner_();const c=cfg_();validateConfig_(c,c.mode==='live');
   if(c.mode==='live'){
-    if(SpreadsheetApp.getUi().alert('Spustit ostrý prodej?', 'Vzniknou skutečné rezervace a e-maily. Pokračovat?', SpreadsheetApp.getUi().ButtonSet.YES_NO)!==SpreadsheetApp.getUi().Button.YES)return;
+    const ui=ui_();
+    if(ui&&ui.alert('Spustit ostrý prodej?', 'Vzniknou skutečné rezervace a e-maily. Pokračovat?', ui.ButtonSet.YES_NO)!==ui.Button.YES)return;
     if(!checkPayments_())throw new Error('Nelze ověřit banku. Prodej zatím nezapnut.');
   }
   withLock_(()=>{usage_(rows_(sheet_(c)));props_().setProperty('SALES_OPEN_MODE',c.mode);props_().setProperty('SALES_OPEN','true');});
@@ -154,13 +157,13 @@ function openSales() {
 function closeSales() { owner_();props_().setProperty('SALES_OPEN','false'); }
 function openGate() {
   owner_();const c=cfg_();validateConfig_(c,c.mode==='live');
-  const ui=SpreadsheetApp.getUi();if(ui.alert('Otevřít odbavení – '+c.mode+'?', 'Načtené zaplacené vstupenky budou označovány jako použité.',ui.ButtonSet.YES_NO)!==ui.Button.YES)return;
+  const ui=ui_();if(ui&&ui.alert('Otevřít odbavení – '+c.mode+'?', 'Načtené zaplacené vstupenky budou označovány jako použité.',ui.ButtonSet.YES_NO)!==ui.Button.YES)return;
   props_().setProperty('SCANNER_OPEN_MODE',c.mode);props_().setProperty('SCANNER_OPEN','true');
 }
 function closeGate() { owner_();props_().setProperty('SCANNER_OPEN','false'); }
 function diagnostics() {
   owner_();const c=cfg_();let error='OK';try{validateConfig_(c,c.mode==='live');usage_(rows_(sheet_(c)));}catch(e){error=e.message;}
-  SpreadsheetApp.getUi().alert('Spouštějící účet: '+Session.getEffectiveUser().getEmail()+'\nRežim: '+c.mode+'\nProdej: '+c.open+'\nOdbavení: '+c.gate+'\nKontrola: '+error+'\nZbývá adresátů e-mailů dnes: '+MailApp.getRemainingDailyQuota()+'\nPoslední banka: '+(props_().getProperty('BANK_LAST_OK')||'neověřena')+'\nKontrola vstupenek: '+c.url+'?action=scanner');
+  return notify_('Spouštějící účet: '+Session.getEffectiveUser().getEmail()+'\nRežim: '+c.mode+'\nProdej: '+c.open+'\nOdbavení: '+c.gate+'\nKontrola: '+error+'\nZbývá adresátů e-mailů dnes: '+MailApp.getRemainingDailyQuota()+'\nPoslední banka: '+(props_().getProperty('BANK_LAST_OK')||'neověřena')+'\nKontrola vstupenek: '+c.url+'?action=scanner');
 }
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('🎟️ Randovka – rezervace')

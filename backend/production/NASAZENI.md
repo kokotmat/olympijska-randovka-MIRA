@@ -12,7 +12,7 @@ Produkční implementace je připravená; nebyla vzdáleně nasazena, nespoušt�
 
 1. Udělejte kopii tabulky a zálohu původního Apps Scriptu. Pokud už tabulka obsahuje objednávky, neprovádějte přechod během prodeje ani odbavení.
 2. V tabulce otevřete **Rozšíření → Apps Script**. U starého projektu vypněte časové spouštěče `checkPayments` a `cancelUnpaidOrders`; jiné spouštěče bezdůvodně neměňte. Nová verze používá pouze `maintenance_`.
-3. Nahraďte původní kód obsahem **Randovka_PRODUKCE.gs**. Neuchovávejte staré doPost/doGet ve druhém `.gs` souboru. Uložte. Projekt musí být připojený k této tabulce kvůli vlastnímu menu.
+3. Nahraďte původní kód obsahem **Randovka_PRODUKCE.gs**. Neuchovávejte staré doPost/doGet ve druhém `.gs` souboru. Uložte. Samostatný projekt také funguje: setupSystem, diagnostics, installAutomation a ovládání prodeje spusťte v editoru. Vlastní menu a akce nad vybraným řádkem vyžadují projekt připojený k tabulce.
 4. V **Nastavení projektu → Vlastnosti skriptu / Script Properties** přidejte `SCANNER_PIN` (nový, minimálně 8 znaků, doporučeně náhodných 12 a více). Pro budoucí ostré platby přidejte nový `FIO_TOKEN`; starý token ze sdíleného kódu nepoužívejte. Do zdrojového kódu ani GitHubu tyto hodnoty nepatří.
 5. V editoru jednou spusťte `setupSystem` a udělte požadovaná oprávnění k tabulce, dokumentům, disku, e-mailům a automatice. Inicializace používá konkrétní listy, původní řádky nemaže. Jestli hlavičky nebo kapacity nesouhlasí, zastaví se s chybou.
 6. Přednastavený IBAN je potvrzený **CZ27 2010 0000 0024 0347 6467**. Script Properties přijímají i IBAN s mezerami. Ověří se kontrolní součet a při čtení Fio také shoda IBANu účtu bankovního výpisu.
