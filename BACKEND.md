@@ -1,6 +1,8 @@
 # Napojení Google Apps Script backendu
 
-Frontend v app.js má nastavený adaptér na dodanou produkční webovou aplikaci Apps Script. Ověřeno bylo pouze čtení GET ?action=getTables: endpoint vrací JSON s názvy stolů a celočíselnými volnými kapacitami. Zdrojový kód Apps Scriptu není součástí repozitáře; skutečný zápis objednávky, PDF, e-maily a čitelnost odpovědí z prohlížeče na cílovém hostingu zatím ověřeny nebyly. Před nasazením změny ověřte níže uvedený POST kontrakt proti existujícímu skriptu a proveďte kontrolu na testovací tabulce.
+Frontend v app.js má nastavený adaptér na dodanou webovou aplikaci Apps Script a reservationMode: "test". V tomto režimu načítá dostupné stoly přes GET ?action=getTables a zobrazuje přehled testovací objednávky. Žádný POST se neodesílá: test nezapisuje objednávky, neblokuje místa ani nespouští e-maily nebo PDF. Také přímé volání adapter.submit() je v testovacím a neznámém režimu zablokováno před síťovým požadavkem.
+
+Přístupná tabulka se jmenuje „Rezervační system listky.randovka - zatim nastaveno jako /test“. Samotný název ale nedokazuje, že dodaný endpoint zapisuje právě do ní nebo že je jeho odesílání e-mailů v testovacím režimu. Zdrojový kód Apps Scriptu není součástí repozitáře. Před skutečným testovacím zápisem je nutné ověřit doPost, cílové ID tabulky a vedlejší účinky skriptu; před ostrým nasazením navíc ceny, kapacity a odpovědi podle níže uvedeného kontraktu.
 
 ## Nasazení
 
@@ -41,7 +43,7 @@ V horní části app.js ve window.PLES_CONFIG je již reservationAdapter aktivn�
 }
 ```
 
-Aktivní adaptér automaticky zapne odesílání, výběr stolů a text tlačítka. Připojujte nejdříve testovací backend na neveřejném náhledu.
+Aktivní adaptér zpřístupní výběr stolů. reservationMode: "test" zachová pouze čtení a lokální přehled. Odesílání vyžaduje výslovnou změnu režimu na "live" ve zdrojovém kódu; tato změna nyní není požadována ani provedena. Parametr URL režim nepřepíná. Původní minimální příklad výše bezpečnostní kontrolu režimu neobsahuje, proto jím nenahrazujte aktuální adaptér. Pro úplné testování zápisu použijte izolované testovací nasazení backendu.
 
 ## Rozhraní stolů
 
