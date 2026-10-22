@@ -1,6 +1,6 @@
 # Napojení Google Apps Script backendu
 
-Backend není součástí ZIPu a nebyl připojen ani otestován. Níže je rozhraní připraveného frontendu. Pokud váš existující skript používá jiné akce nebo odpovědi, upravte adaptér a zachovejte svou logiku objednávek a PDF.
+Frontend v app.js má nastavený adaptér na dodanou produkční webovou aplikaci Apps Script. Ověřeno bylo pouze čtení GET ?action=getTables: endpoint vrací JSON s názvy stolů a celočíselnými volnými kapacitami. Zdrojový kód Apps Scriptu není součástí repozitáře; skutečný zápis objednávky, PDF, e-maily a čitelnost odpovědí z prohlížeče na cílovém hostingu zatím ověřeny nebyly. Před nasazením změny ověřte níže uvedený POST kontrakt proti existujícímu skriptu a proveďte kontrolu na testovací tabulce.
 
 ## Nasazení
 
@@ -10,7 +10,7 @@ Frontend nahrajte na HTTPS hosting. Pro úpravy používejte app.js, nikoli samo
 
 ## Zapnutí adaptéru
 
-V horní části app.js ve window.PLES_CONFIG nahraďte pouze položku "reservationAdapter": null následujícím kódem. Obě URL nahraďte URL svého backendu. Sponzory ponechte.
+V horní části app.js ve window.PLES_CONFIG je již reservationAdapter aktivní. Jeho endpoint určuje URL webové aplikace; pro testování nastavte URL samostatného testovacího nasazení. Následující příklad popisuje původní minimální rozhraní adaptéru. Sponzory ponechte.
 
 ```js
 "reservationAdapter": {
