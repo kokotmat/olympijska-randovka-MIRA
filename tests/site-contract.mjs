@@ -42,7 +42,7 @@ assert(fs.statSync(path.join(root,'assets/sdileni-2027.jpg')).size<300000);
 const scanner=read('kontrola-vstupenek.html');
 assert(scanner.includes('OSTRÝ REŽIM'));assert(!scanner.includes('OSTRÉ ODBAVENÍ'));
 assert(scanner.includes('body.message'));assert(scanner.includes('background:#006b96;color:white'));
-for(const name of ['app.js','sponsors.js','data.js','animations.js','olympic-effects.js','sponsor-controls.js'])new vm.Script(read(name),{filename:name});
+for(const name of ['app.js','sponsors.js','data.js','animations.js','olympic-effects.js','sponsor-controls.js','table-layout.js','table-picker.js'])new vm.Script(read(name),{filename:name});
 for(const s of scanner.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))new vm.Script(s[1]);
 for(const name of ['SKENER.md.js','KONTROLA.md.js','BACKEND.md.js','README.md.js','SEO.md.js','sponsors.json.js','tests/[[path]].js','scripts/[[path]].js']){
   const source=read('functions/'+name);

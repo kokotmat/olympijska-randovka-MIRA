@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import {performance} from 'node:perf_hooks';
 
 // In-memory Apps Script contract doubles. No Google, bank or mail connection.
-const source=fs.readFileSync(new URL('../backend/production/Reservations.gs',import.meta.url),'utf8');
+const source=['Reservations.gs','Operations.gs'].map(name=>fs.readFileSync(new URL('../backend/production/'+name,import.meta.url),'utf8')).join('\n');
 const signedBytes=b=>[...b].map(n=>n>127?n-256:n);
 let tests=0;
 function fixture(){
@@ -59,6 +59,17 @@ function fixture(){
   return {ctx,R,properties,payload,login,sheet,ledger,setBusy:v=>busy=v,setQuota:v=>quota=v,setBankFailure:v=>bankFailure=v,setFlushFailure:v=>flushFailure=v};
 }
 function test(name,fn){fn();tests++;console.log('PASS',name);}
+
+test('health is owner-only, counts failed/uncertain outbox, never calls bank or sends mail',()=>{
+  const f=fixture();f.ctx.reserve_(f.payload());const r=f.sheet().rows[1];
+  r[f.R.col.confirmation]='CHYBA PŘÍPRAVY';r[f.R.col.tickets]='NEJASNÉ – ověřit odeslání';r[7]=f.R.late;
+  f.properties.BANK_ERROR='BANK_HTTP_503';f.properties.MAINTENANCE_ERROR='MAINTENANCE_FAILED';f.setQuota(0);
+  const h=f.ctx.operationsHealth();
+  assert.equal(h.mailErrors,1);assert.equal(h.uncertainEmails,1);assert.equal(h.latePayments,1);assert.equal(h.remainingRecipients,0);
+  assert.equal(h.bankError,'BANK_HTTP_503');assert.equal(h.maintenanceError,'MAINTENANCE_FAILED');
+  assert(!JSON.stringify(h).includes('tester@example.test'));assert(!JSON.stringify(h).includes(f.properties.SCANNER_PIN));
+  f.ctx.Session.getActiveUser=()=>({getEmail:()=>''});assert.throws(()=>f.ctx.operationsHealth(),/vlastníka/);
+});
 test('last seat and repeated request are serialized without overselling',()=>{
   const f=fixture(),a=f.payload({count:3});f.ctx.reserve_(a);
   const b=f.payload({email:'b@example.test'});f.ctx.reserve_(b);

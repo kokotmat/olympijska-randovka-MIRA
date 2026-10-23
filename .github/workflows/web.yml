@@ -18,4 +18,6 @@ jobs:
       - run: node tests/scanner-gateway.mjs
       - run: node tests/production-system.mjs
       - run: node tests/visit.mjs
+      - run: node tests/table-availability.mjs
+      - run: node tests/table-client.mjs
       - run: node tests/scanner-client.mjs
