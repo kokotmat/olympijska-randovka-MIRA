@@ -1,6 +1,10 @@
 # Napojení Google Apps Script backendu
 
-Backend není součástí ZIPu a nebyl připojen ani otestován. Níže je rozhraní připraveného frontendu. Pokud váš existující skript používá jiné akce nebo odpovědi, upravte adaptér a zachovejte svou logiku objednávek a PDF.
+Frontend v app.js má reservationMode: "test" a reservationTestEndpoint: null. Výchozí režim načítá dostupné stoly z dodané webové aplikace přes GET ?action=getTables a zobrazuje pouze lokální přehled. Žádný POST se v tomto nastavení neodesílá. Přímé volání adapter.submit() je v testovacím a neznámém režimu zablokováno před síťovým požadavkem.
+
+Pro skutečný zápis testovacích objednávek je připraven samostatný backend backend/TestReservations.gs a metoda adapter.submitTest(). Postup je v backend/TESTOVANI.md. Testovací endpoint musí před POST potvrdit protokol randovka-test-v1, samostatný list Test_rezervace a vypnuté e-maily, platby a vstupenky. Výchozí konfigurace žádný takový endpoint neobsahuje a nebylo provedeno jeho vzdálené nasazení.
+
+Přístupná tabulka se jmenuje „Rezervační system listky.randovka - zatim nastaveno jako /test“. Dodaný původní Apps Script byl zkontrolován: nemá testovací režim, používá aktivní list a po zápisu objednávky odesílá skutečné platební instrukce. Jeho platby, vstupenky a tajné údaje nejsou součástí testovacího backendu ani této veřejné kopie zdrojů. Název tabulky s /test sám o sobě neodděluje ostré a testovací rezervace.
 
 ## Nasazení
 
@@ -10,7 +14,7 @@ Frontend nahrajte na HTTPS hosting. Pro úpravy používejte app.js, nikoli samo
 
 ## Zapnutí adaptéru
 
-V horní části app.js ve window.PLES_CONFIG nahraďte pouze položku "reservationAdapter": null následujícím kódem. Obě URL nahraďte URL svého backendu. Sponzory ponechte.
+V horní části app.js ve window.PLES_CONFIG je již reservationAdapter aktivní. Jeho endpoint určuje URL webové aplikace; pro testování nastavte URL samostatného testovacího nasazení. Následující příklad popisuje původní minimální rozhraní adaptéru. Sponzory ponechte.
 
 ```js
 "reservationAdapter": {
@@ -41,7 +45,7 @@ V horní části app.js ve window.PLES_CONFIG nahraďte pouze položku "reservat
 }
 ```
 
-Aktivní adaptér automaticky zapne odesílání, výběr stolů a text tlačítka. Připojujte nejdříve testovací backend na neveřejném náhledu.
+Aktivní adaptér zpřístupní výběr stolů. reservationMode: "test" zachová pouze čtení a lokální přehled. Odesílání vyžaduje výslovnou změnu režimu na "live" ve zdrojovém kódu; tato změna nyní není požadována ani provedena. Parametr URL režim nepřepíná. Původní minimální příklad výše bezpečnostní kontrolu režimu neobsahuje, proto jím nenahrazujte aktuální adaptér. Pro úplné testování zápisu použijte izolované testovací nasazení backendu.
 
 ## Rozhraní stolů
 

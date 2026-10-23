@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><meta name="randovka-backend" content="https://script.google.com/macros/s/AKfycbxeGpwuIH_j1BVdnh2Z7RcRzHhqV1uKxkEl7Qo1WZlK18Fid34421P8HFjbvzF0hBD9/exec"><title>Randovka – kontrola vstupenek</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,sans-serif;background:#081323;color:#f3f7ff}*{box-sizing:border-box}body{margin:0}main{max-width:640px;margin:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}h1{font-size:23px;margin:0}.badge{font-size:12px;background:#1c2d46;border-radius:20px;padding:7px 10px}label{display:block;margin:14px 0 7px}input,button{font:inherit;min-height:50px;border-radius:12px}input{width:100%;padding:12px;border:1px solid #405574;background:#101f35;color:white}button{padding:12px 17px;border:0;background:#009dde;color:white;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}.muted{color:#afbdd1;font-size:14px;line-height:1.5}.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.secondary{background:#213550}.hidden,[hidden]{display:none!important}#result{min-height:165px;border:2px solid #39506f;border-radius:18px;padding:20px;margin:18px 0;background:#12213a}#result[data-kind="ok"]{background:#073e2d;border-color:#36e6a4}#result[data-kind="bad"]{background:#4a1824;border-color:#ff6e88}#result[data-kind="warn"]{background:#443416;border-color:#ffcf66}#result h2{font-size:28px;margin:0 0 12px}#result p{margin:6px 0;line-height:1.4;overflow-wrap:anywhere}#cameraBox{position:relative;background:#02070e;border-radius:18px;overflow:hidden;aspect-ratio:4/3;margin-top:12px}video{width:100%;height:100%;object-fit:cover}.reticle{position:absolute;inset:15% 22%;border:3px solid #7dfbd4;border-radius:16px;pointer-events:none}#cameraHint{position:absolute;bottom:8px;left:8px;right:8px;text-align:center;background:#081323bd;padding:8px;border-radius:9px;font-size:13px}details{margin-top:18px}summary{cursor:pointer;padding:12px 0}#status{min-height:24px}#history{font-size:14px;padding-left:20px;color:#afbdd1}#history li{margin:6px 0}#logout{font-size:13px;min-height:38px;padding:8px}#latency{font-variant-numeric:tabular-nums}a{color:#67daff}canvas{display:none}.warning{color:#ffcf66}
+</style></head><body><main>
+<header><div><h1>Kontrola vstupenek</h1><div class="muted">Olympijská Randovka 2027</div></div><span id="mode" class="badge">Přihlášení obsluhy</span></header>
+<p id="cameraAvailability" class="muted" role="status"></p>
+<p id="cameraExternal" hidden><a href="https://olympijskarandovka.cz/kontrola-vstupenek.html" target="_blank" rel="noopener noreferrer">Otevřít kamerový skener na webu Randovky</a></p>
+<section id="login"><form id="loginForm"><label for="pin">PIN obsluhy</label><input id="pin" type="password" autocomplete="current-password" maxlength="128" required><button id="loginButton" style="width:100%;margin-top:14px">Přihlásit obsluhu</button></form><p class="muted">PIN se neposílá v adrese stránky. Přihlášení platí nejvýše 6 hodin. Pro ostré odbavení musí být připojení k internetu.</p><p id="loginError" role="alert"></p></section>
+<section id="work" hidden>
+<div class="row"><span id="connection" class="muted">Připraveno</span><button id="logout" class="secondary" type="button">Odhlásit</button></div>
+<p class="muted">Odezva poslední kontroly: <span id="latency">—</span></p>
+<div id="result" aria-live="polite" role="status"><h2>Připraveno ke kontrole</h2><p>Zapněte kameru nebo načtěte QR kód čtečkou.</p></div>
+<div class="row"><button id="cameraStart" type="button">Zapnout kameru</button><button id="cameraStop" class="secondary" type="button" disabled>Vypnout</button></div>
+<div id="cameraBox" hidden><video id="video" muted playsinline></video><div class="reticle"></div><div id="cameraHint">Namiřte na QR. Po výsledku kód oddalte.</div></div>
+<p id="status" class="muted" role="status"></p>
+<form id="manualForm"><label for="code">QR kód / odkaz / ruční čtečka</label><div class="row"><input id="code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Načtěte nebo vložte QR kód" required><button id="check" type="submit">Ověřit vstup</button></div></form>
+<button id="retry" class="secondary" type="button" hidden style="width:100%;margin-top:12px">Znovu zkontrolovat poslední kód</button>
+<details><summary>Další možnosti</summary><label for="photo">Načíst fotografii QR kódu</label><input id="photo" type="file" accept="image/*"><p class="muted">Pokud prohlížeč nepovolí kameru uvnitř aplikace, použijte fotografii nebo ruční čtečku. Obrázek se dekóduje v tomto zařízení.</p><label><input id="sound" type="checkbox" checked style="width:auto;min-height:auto"> Zvuk výsledku</label><p class="muted">Při ztrátě spojení se vstup nikdy nepotvrdí offline.</p><p id="decoderStatus" class="muted"></p></details>
+<details><summary>Posledních 8 kontrol na tomto zařízení</summary><ol id="history"></ol><p class="muted">Přehled je pouze v paměti této stránky a po odhlášení se smaže.</p></details>
+</section><canvas id="canvas"></canvas>
+</main>
+<!-- JSQR_BUNDLE -->
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+let session=null,busy=false,stream=null,detector=null,loop=0,epoch=0,seen='',absentSince=0,lastHash='',audio=null,wake=null;
+const history=[];
+async function rpc(method,data){let timer,controller;try{return await Promise.race([new Promise((resolve,reject)=>{
+ if(!window.google||!google.script||!google.script.run){
+  const endpoint=document.querySelector('meta[name="randovka-backend"]').content;
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint)){reject(new Error('Chybí adresa nasazeného backendu.'));return;}
+  controller=new AbortController();
+  const gateway=document.querySelector('meta[name="randovka-api"]')?.content;
+  if(gateway&&gateway!=='/api/scanner'){reject(new Error('Neplatná adresa brány skeneru.'));return;}
+  fetch(gateway||endpoint,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'follow',signal:controller.signal,headers:{'Content-Type':'text/plain;charset=UTF-8'},
+   body:JSON.stringify({...data,action:method==='login'?'scannerLogin':'scan'})})
+   .then(response=>{if(!response.ok)throw new Error('HTTP');return response.json();}).then(resolve).catch(()=>reject(new Error('Spojení s backendem selhalo. Ověřte nasazení, přístup a CORS.')));return;
+ }
+ const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(()=>reject(new Error('Server neodpověděl. Ověřte připojení a zopakujte kontrolu.')));
+ if(method==='login')runner.scannerLogin(data);else runner.scannerScan(data);
+}),new Promise((_,reject)=>{timer=setTimeout(()=>{reject(new Error('Server včas neodpověděl. Výsledek kontroly je nejasný.'));if(controller)controller.abort();},25000);})]);}finally{clearTimeout(timer);}}
+function initAudio(){try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();audio.resume();}catch(_){}}
+function beep(ok){if(!$('sound').checked||!audio)return;try{const o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);o.frequency.value=ok?880:220;g.gain.value=.1;o.start();o.stop(audio.currentTime+(ok?.12:.3));}catch(_){}}
+function result(kind,title,message,name){const box=$('result');box.dataset.kind=kind;box.replaceChildren();const h=document.createElement('h2');h.textContent=title;box.append(h);[name,message].filter(Boolean).forEach(text=>{const p=document.createElement('p');p.textContent=text;box.append(p);});}
+function extract(value){const raw=String(value||'').trim();if(/^[a-z0-9-]{20,100}$/i.test(raw))return raw.toLowerCase();try{const url=new URL(raw);if(url.protocol!=='https:')return '';const h=url.searchParams.get('hash');return h&&/^[a-z0-9-]{20,100}$/i.test(h)?h.toLowerCase():'';}catch(_){return '';}}
+function controls(){ $('check').disabled=busy;$('retry').disabled=busy;$('connection').textContent=busy?'Ověřuji na serveru…':navigator.onLine?'Připraveno • online':'Bez připojení';}
+async function inspect(raw){
+ if(busy||!session)return;
+ const hash=extract(raw);if(!hash){result('warn','NEPLATNÝ QR','Načtěte kód vstupenky Randovky.');beep(false);return;}
+ lastHash=hash;$('retry').hidden=true;
+ if(!navigator.onLine){result('warn','BEZ PŘIPOJENÍ','Vstup nebyl potvrzen. Připojte zařízení a zopakujte kontrolu.');$('retry').hidden=false;return;}
+ busy=true;controls();result('','OVĚŘUJI…','Počkejte na výsledek ze serveru.');
+ const started=performance.now(),turn=epoch;
+ // A timeout never means success. The server may finish after the device disconnects.
+ const timer=setTimeout(()=>{if(turn===epoch&&busy){result('warn','ČEKÁM NA SERVER','Nic nepovolujte bez potvrzeného výsledku. Při výpadku zkontrolujte použití kódu.');}},8000);
+ try{
+  const answer=await rpc('scan',{session,hash});if(turn!==epoch)return;
+  $('latency').textContent=((performance.now()-started)/1000).toFixed(2)+' s';
+  if(answer.code==='AUTH'){logout();$('loginError').textContent='Přihlášení vypršelo. Zadejte znovu PIN.';return;}
+  const ok=answer.status==='success'&&answer.code==='ADMITTED';
+  const warning=['BUSY','ERROR'].includes(answer.code);
+  const message=ok?[answer.ticketType,answer.table,answer.used+' / '+answer.count+' vstupů v objednávce'].filter(Boolean).join(' • '):answer.message;
+  result(ok?'ok':warning?'warn':'bad',answer.title||'CHYBA',message,answer.name);beep(ok);
+  try{if(navigator.vibrate)navigator.vibrate(ok?80:[120,70,120]);}catch(_){}
+  $('retry').hidden=!warning;
+  history.unshift((ok?'✓ ':'✕ ')+(answer.title||'CHYBA')+' • '+new Date().toLocaleTimeString('cs-CZ'));history.splice(8);
+  $('history').replaceChildren(...history.map(v=>{const li=document.createElement('li');li.textContent=v;return li;}));
+ }catch(error){if(turn===epoch){result('warn','SPOJENÍ SELHALO','Výsledek je nejasný. Při opakování může server hlásit „již použito“; ověřte u obsluhy, kdo kontrolu dokončil.');$('retry').hidden=false;beep(false);}}
+ finally{clearTimeout(timer);if(turn===epoch){busy=false;controls();$('code').value='';if(!stream)$('code').focus();}}
+}
+async function decode(source,central=false){
+ const canvas=$('canvas'),width=source.videoWidth||source.naturalWidth||source.width,height=source.videoHeight||source.naturalHeight||source.height;
+ if(!width||!height)return '';
+ const side=Math.min(width,height)*.75,sw=central?side:width,sh=central?side:height;
+ const sx=central?(width-side)/2:0,sy=central?(height-side)/2:0;
+ const scale=Math.min(1,640/sw);canvas.width=Math.round(sw*scale);canvas.height=Math.round(sh*scale);
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(source,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+ if(detector){try{const values=await detector.detect(canvas);if(values.length>1){$('status').textContent='V záběru je více QR. Přibližte pouze jednu vstupenku.';return '';}if(values.length===1)return values[0].rawValue;}catch(_){}}
+ if(typeof jsQR!=='function')return '';
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);const found=jsQR(pixels.data,pixels.width,pixels.height,{inversionAttempts:'dontInvert'});return found?found.data:'';
+}
+async function frame(){
+ if(!stream)return;
+ if(!document.hidden&&!busy&&$('video').readyState>=2){
+  let raw='';try{raw=await decode($('video'),true);}catch(_){$('status').textContent='QR nelze přečíst. Upravte osvětlení nebo použijte ruční čtečku.';}const value=extract(raw);
+  if(value){absentSince=0;if(value!==seen){seen=value;void inspect(value);}}
+  else if(!absentSince)absentSince=performance.now();else if(performance.now()-absentSince>700)seen='';
+ }
+ loop=setTimeout(()=>void frame(),180);
+}
+async function startCamera(){
+ initAudio();$('status').textContent='Spouštím kameru…';
+ const problem=cameraProblem();if(problem){$('status').textContent=problem;return;}
+ try{
+  stopCamera();const generation=epoch;$('cameraStart').disabled=true;const acquired=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+  if(generation!==epoch){acquired.getTracks().forEach(t=>t.stop());return;}stream=acquired;
+  $('video').srcObject=stream;await $('video').play();$('cameraBox').hidden=false;$('cameraStop').disabled=false;$('cameraStart').disabled=true;
+  $('status').textContent='Kamera běží. Jeden kód se kontroluje jen jednou, dokud ho neoddálíte.';
+  if(navigator.wakeLock)try{wake=await navigator.wakeLock.request('screen');}catch(_){}
+  void frame();
+ }catch(error){stopCamera();$('status').textContent=cameraError(error);}
+}
+function cameraProblem(){
+ if(!window.isSecureContext)return 'Kamera vyžaduje HTTPS. Otevřete skener přímo na zabezpečeném webu Randovky.';
+ const policy=document.permissionsPolicy||document.featurePolicy;
+ if(policy&&typeof policy.allowsFeature==='function'&&!policy.allowsFeature('camera'))return 'Tato stránka má kameru zablokovanou pravidly vloženého rámce. Otevřete kamerový skener na webu Randovky v nové kartě.';
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return 'Tento prohlížeč kameru nezpřístupňuje. Otevřete odkaz přímo v Safari nebo Chromu; zálohou je fotografie QR nebo ruční čtečka.';
+ return '';
+}
+function cameraError(error){
+ if(error&&error.name==='NotAllowedError')return 'Přístup ke kameře byl zamítnut. V nastavení této stránky povolte kameru. Vložený prohlížeč nahraďte Safari nebo Chromem.';
+ if(error&&error.name==='NotFoundError')return 'Zařízení nemá dostupnou kameru. Použijte fotografii QR nebo ruční čtečku.';
+ if(error&&error.name==='NotReadableError')return 'Kameru právě používá jiná aplikace nebo ji nelze spustit. Zavřete ostatní aplikace s kamerou a zkuste to znovu.';
+ return 'Kameru se nepodařilo spustit. Zkuste jiný prohlížeč; zálohou je fotografie QR nebo ruční čtečka.';
+}
+function stopCamera(){clearTimeout(loop);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('video').srcObject=null;$('cameraBox').hidden=true;$('cameraStop').disabled=true;$('cameraStart').disabled=false;seen='';if(wake){wake.release().catch(()=>{});wake=null;}}
+function logout(){epoch++;session=null;busy=false;stopCamera();$('login').hidden=false;$('work').hidden=true;$('pin').value='';$('code').value='';$('mode').textContent='Přihlášení obsluhy';history.length=0;$('history').replaceChildren();lastHash='';controls();}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();initAudio();$('loginButton').disabled=true;$('loginError').textContent='Přihlašuji…';try{const answer=await rpc('login',{pin:$('pin').value});$('pin').value='';if(answer.status!=='success')throw new Error(answer.message);session=answer.session;epoch++;$('login').hidden=true;$('work').hidden=false;$('mode').textContent=answer.mode==='test'?'TESTOVACÍ REŽIM':'OSTRÉ ODBAVENÍ';$('mode').classList.toggle('warning',answer.mode==='test');result('','PŘIPRAVENO','Zapněte kameru nebo načtěte kód ruční čtečkou.');controls();$('code').focus();}catch(error){$('loginError').textContent=error.message;}finally{$('loginButton').disabled=false;}});
+$('manualForm').addEventListener('submit',e=>{e.preventDefault();initAudio();void inspect($('code').value);});
+$('retry').addEventListener('click',()=>{if(lastHash)void inspect(lastHash);});
+$('cameraStart').addEventListener('click',()=>void startCamera());$('cameraStop').addEventListener('click',stopCamera);$('logout').addEventListener('click',logout);
+$('photo').addEventListener('change',async()=>{const file=$('photo').files[0];if(!file)return;if(file.size>12*1024*1024){$('status').textContent='Fotografie je příliš velká (max. 12 MB).';return;}const url=URL.createObjectURL(file);try{const image=new Image();image.src=url;await image.decode();const value=await decode(image);if(value)await inspect(value);else result('warn','QR NENALEZEN','Zkuste ostřejší fotografii nebo ruční čtečku.');}catch(_){result('warn','OBRÁZEK NELZE PŘEČÍST','Zkuste jinou fotografii nebo ruční čtečku.');}finally{URL.revokeObjectURL(url);$('photo').value='';}});
+window.addEventListener('offline',()=>{controls();$('status').textContent='Bez internetu: odbavení je pozastaveno.';});window.addEventListener('online',()=>{controls();$('status').textContent='Připojení obnoveno.';});
+window.addEventListener('pagehide',stopCamera);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&wake){wake.release().catch(()=>{});wake=null;}});
+if(window.BarcodeDetector)BarcodeDetector.getSupportedFormats().then(formats=>{if(formats.includes('qr_code')){detector=new BarcodeDetector({formats:['qr_code']});$('decoderStatus').textContent='Dekodér: nativní QR; lokální záloha jsQR.';}}).catch(()=>{});
+$('decoderStatus').textContent='Dekodér: lokální jsQR. Fotografie ani QR se neposílají generátoru třetí strany.';
+const cameraIssue=cameraProblem();$('cameraAvailability').textContent=cameraIssue||'Kamera je v tomto prohlížeči dostupná. Po přihlášení klepněte na Zapnout kameru a povolte přístup.';
+$('cameraExternal').hidden=!(window.top!==window.self&&cameraIssue);if(cameraIssue)$('cameraStart').disabled=true;
+})();
+</script></body></html>
