@@ -116,27 +116,10 @@ window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
     });
     $('sponsor-logos').replaceChildren(track);
   }
-  let count=1, tables={}, tableRequest=0;
+  let count=1;
   const money=value=>new Intl.NumberFormat('cs-CZ').format(value)+' Kč';
   const selectedType=()=>document.querySelector('input[name="ticketType"]:checked').value;
-  function populateTables(){
-    const select=$('selected-table'), previous=select.value;
-    select.replaceChildren(new Option('-- Vyberte stůl z nabídky --',''));
-    const floor=document.createElement('optgroup');floor.label='Velký sál (Přízemí)';
-    const balcony=document.createElement('optgroup');balcony.label='Ochoz (Balkón)';
-    Object.entries(tables).forEach(([name,seats])=>{if(Number(seats)>=count)(name.startsWith('Sál')?floor:balcony).append(new Option(name+' (Volno: '+seats+' míst)',name));});
-    select.append(floor,balcony);select.disabled=false;
-    if([...select.options].some(option=>option.value===previous))select.value=previous;
-    if(!Object.values(tables).some(seats=>Number(seats)>=count)){select.options[0].textContent='Pro vybraný počet osob nejsou stoly';}
-  }
-  async function loadTables(){
-    if(!config.reservationAdapter)return;
-    const request=++tableRequest;
-    $('selected-table').disabled=true;
-    $('selected-table').replaceChildren(new Option('Načítám volné stoly…',''));
-    try{const result=await config.reservationAdapter.getTables();if(request!==tableRequest)return;tables=result;populateTables();}
-    catch(error){if(request!==tableRequest)return;$('selected-table').replaceChildren(new Option('Chyba spojení. Zkuste změnit typ vstupenky.',''));$('form-status').textContent='Nepodařilo se načíst stoly.';}
-  }
+  const loadTables=()=>window.PLES_TABLE_PICKER?.refresh();
   function updateTickets(){
     const seating=selectedType()==='450';
     $('ticket-count').textContent=count;
@@ -145,8 +128,8 @@ window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
     $('selected-table').required=seating&&Boolean(config.reservationAdapter);
     $('pdf-options-box').hidden=count===1;
     if(count===1)$('separate-pdf').checked=false;
-    $('minus').disabled=count===1;$('plus').disabled=count===10;
-    if(seating&&Object.keys(tables).length)populateTables();
+    $('minus').disabled=count===1;$('plus').disabled=count>=(seating?4:10);
+    window.PLES_TABLE_PICKER?.setCount(count);
   }
   $('minus').addEventListener('click',()=>{count=Math.max(1,count-1);updateTickets();});
   $('plus').addEventListener('click',()=>{count=Math.min(10,count+1);updateTickets();});
@@ -158,7 +141,7 @@ window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
     const seating=selectedType()==='450';
     const payload={name:config.reservationAdapter?$('buyer-name').value.trim():'Ukázka rezervace',email:config.reservationAdapter?$('buyer-email').value.trim():'Není potřeba',ticketType:seating?'Místenka ke stolu':'Základní vstupenka',count,totalPrice:count*Number(selectedType()),table:seating?$('selected-table').value:'',oddelenePdf:$('separate-pdf').checked};
     if(!payload.name){$('buyer-name').setCustomValidity('Vyplňte jméno a příjmení.');$('buyer-name').reportValidity();return;}
-    if(config.reservationAdapter&&seating&&(!payload.table||Number(tables[payload.table])<count)){$('form-status').textContent='Vyberte stůl s dostatkem volných míst.';return;}
+    if(config.reservationAdapter&&seating&&(!payload.table||!window.PLES_TABLE_PICKER?.canSelect(payload.table))){$('form-status').textContent='Vyberte stůl s dostatkem volných míst.';return;}
     const rows=[['Jméno',payload.name],['E-mail',payload.email],['Vstupenka',payload.ticketType],['Počet',payload.count],['Stůl',payload.table||(seating?'Bude vybrán při spuštění rezervací':'Bez místenky')],['PDF',payload.oddelenePdf?'Samostatné soubory':'Společný soubor'],['Celkem',money(payload.totalPrice)]];
     $('reservation-summary').innerHTML=rows.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('');
     if(!config.reservationAdapter){$('reservation-modal').showModal();return;}
@@ -168,7 +151,7 @@ window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
       if(result.status!=='success')throw new Error(result.message||'Rezervace nebyla přijata.');
       $('reservation-heading').textContent='Objednávka přijata!';
       document.querySelector('.preview-notice').textContent='Vaše objednávka byla přijata. Další informace obdržíte e-mailem.';
-      $('reservation-modal').showModal();$('ticket-form').reset();count=1;tables={};updateTickets();
+      $('reservation-modal').showModal();$('ticket-form').reset();count=1;window.PLES_TABLE_PICKER?.reset();updateTickets();
     }catch(error){$('form-status').textContent='Chyba při rezervaci: '+error.message;}
     finally{submit.disabled=false;submit.textContent='Dokončit rezervaci';}
   });

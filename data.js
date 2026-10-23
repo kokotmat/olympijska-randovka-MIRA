@@ -82,7 +82,7 @@ window.PLES_DATA = {
     },
     {
       "id": 11,
-      "name": "Risto Kohout",
+      "name": "Filip Risto Kohout",
       "discipline": "Disciplína",
       "quote": "Hláška...",
       "img": "assets/ff8bddc6fecc7559.webp",

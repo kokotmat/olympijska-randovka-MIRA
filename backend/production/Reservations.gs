@@ -169,6 +169,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('🎟️ Randovka – rezervace')
     .addItem('Inicializovat / zkontrolovat tabulku','setupSystem')
     .addItem('Diagnostika a odkaz na kontrolu','diagnostics')
+    .addItem('Přehled zdraví systému – vytvořit / obnovit','setupOperationsDashboard')
     .addItem('Nainstalovat automatiku','installAutomation')
     .addSeparator().addItem('Otevřít prodej v nastaveném režimu','openSales').addItem('Pozastavit prodej','closeSales')
     .addItem('Otevřít odbavení v nastaveném režimu','openGate').addItem('Uzavřít odbavení','closeGate')
@@ -335,10 +336,18 @@ function expire_(s,rows,c) {
 }
 function runMaintenance() { owner_();maintenance_(); }
 function maintenance_() {
-  const c=cfg_();
-  if(c.mode==='live')checkPayments_();
-  else withLock_(()=>{const s=sheet_(c);expire_(s,rows_(s),c);});
-  sendOutbox_();
+  props_().setProperty('MAINTENANCE_LAST_STARTED',String(Date.now()));
+  try{
+    const c=cfg_();
+    if(c.mode==='live')checkPayments_();
+    else withLock_(()=>{const s=sheet_(c);expire_(s,rows_(s),c);});
+    sendOutbox_();
+    props_().setProperty('MAINTENANCE_LAST_OK',String(Date.now()));props_().deleteProperty('MAINTENANCE_ERROR');
+  }catch(error){
+    props_().setProperty('MAINTENANCE_ERROR','MAINTENANCE_FAILED');props_().setProperty('MAINTENANCE_LAST_ERROR_AT',String(Date.now()));throw error;
+  }finally{
+    try{updateOperationsDashboard_();}catch(_){console.warn('DASHBOARD_UPDATE_FAILED');}
+  }
 }
 
 function qrBlob_(data,name) {
@@ -497,17 +506,7 @@ function scannerLogin(data) {
   }catch(error){return {status:'error',message:error.message==='BUSY'?'Systém je vytížený.':error.message};}
 }
 function operationsHealth() {
-  owner_();const c=cfg_(),rows=rows_(sheet_(c)),now=Date.now();
-  const queue=[];let uncertain=0;
-  rows.forEach(r=>{[R.col.confirmation,R.col.tickets].forEach(col=>{
-    if(r[col]==='ČEKÁ')queue.push(date_(r[R.col.changed])||date_(r[0])||now);
-    if(String(r[col]).startsWith('NEJASNÉ'))uncertain++;
-  });});
-  const result={mode:c.mode,salesOpen:c.open,gateOpen:c.gate,queuedEmails:queue.length,
-    oldestQueuedEmailSeconds:queue.length?Math.max(0,Math.floor((now-Math.min(...queue))/1000)):0,
-    uncertainEmails:uncertain,remainingRecipients:MailApp.getRemainingDailyQuota(),
-    bankAgeSeconds:props_().getProperty('BANK_LAST_OK')?Math.floor((now-Number(props_().getProperty('BANK_LAST_OK')))/1000):null,
-    bankError:props_().getProperty('BANK_ERROR')||null};
+  owner_();const result=operationsHealth_();
   console.log(JSON.stringify(result));return result;
 }
 function session_(token,c) {

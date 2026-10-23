@@ -9,10 +9,12 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <link rel="preload" href="assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261023-venue3">
-  <script defer src="data.js?v=20261023-visit2"></script>
+  <link rel="stylesheet" href="style.css?v=20261023-tables1">
+  <script defer src="data.js?v=20261023-name2-visit2"></script>
   <script defer src="sponsors.js?v=20261023-eroshop"></script>
-  <script defer src="app.js?v=20261023-visit2"></script>
+  <script defer src="table-layout.js?v=20261023"></script>
+  <script defer src="table-picker.js?v=20261023"></script>
+  <script defer src="app.js?v=20261023-tables1"></script>
   <script defer src="vendor/gsap.min.js"></script>
   <script defer src="vendor/ScrollTrigger.min.js"></script>
   <script defer src="animations.js?v=20261023-polish"></script>
@@ -69,7 +71,7 @@
       <div class="countdown-row"><div class="countdown-heading"><img src="assets/kruhy.png" width="2328" height="1062" alt="Olympijské kruhy"><h2>Do zapálení<br> olympijského ohně <small>22. ledna v 19:00</small></h2></div><div id="countdown" aria-label="Odpočet do zahájení"><span><b id="cd-days">—</b> dní</span><span><b id="cd-hours">—</b> hodin</span><span><b id="cd-minutes">—</b> minut</span><span><b id="cd-seconds">—</b> sekund</span></div></div>
     </section>
     <section id="program" class="section program-section">
-      <div class="wrap program-layout"><div class="section-heading"><h2>Program večera</h2><p class="program-performers">K tanci hraje <a href="https://www.orchestrbarese.cz/" target="_blank" rel="noopener">Orchestr Ladislava Bareše ↗</a>. Předtančení připravuje naše V8.A.</p><p class="schedule-hint">Pokračujte posouváním — od otevření sálu až po půlnoc.</p></div><div class="schedule-window" tabindex="0" role="region" aria-label="Program večera. Na mobilu posouvejte do stran, na počítači pokračujte dolů."><ol class="schedule">
+      <div class="wrap program-layout"><div class="section-heading"><h2>Program večera</h2><p class="program-performers">K tanci hraje <a href="https://www.orchestrbarese.cz/" target="_blank" rel="noopener">Orchestr Ladislava Bareše ↗</a>. Předtančení pro V8.A připravily Anna Bauerová a Beata Vrajíková.</p><p class="schedule-hint">Pokračujte posouváním — od otevření sálu až po přesun na afterparty</p></div><div class="schedule-window" tabindex="0" role="region" aria-label="Program večera. Na mobilu posouvejte do stran, na počítači pokračujte dolů."><ol class="schedule">
         <li><time>18:00</time><div><h3>Otevření sálu</h3></div></li>
         <li><time>19:00</time><div><h3>Předtančení & zahájení</h3></div></li>
         <li><time>20:00</time><div><h3>Šerpování maturantů</h3></div></li>
@@ -92,7 +94,7 @@
       <div class="ticket-layout"><div class="reservation"><div id="sales-notice" class="sales-notice"><strong>Prodej zatím není spuštěn</strong><p>Prohlédněte si ceny a vyzkoušejte přepočet. Ukázka nevytváří rezervaci a nepotřebuje vaše osobní údaje.</p></div><form id="ticket-form" method="post"><noscript><p>Pro přepočet vstupenek je potřeba JavaScript. Rezervace nyní nepřijímáme.</p></noscript>
         <div class="form-fields"><label for="buyer-name">Jméno a příjmení<input id="buyer-name" autocomplete="name" disabled placeholder="Vyplníte po spuštění prodeje"></label><label for="buyer-email">E-mail<input id="buyer-email" type="email" autocomplete="email" disabled placeholder="Vyplníte po spuštění prodeje"></label></div>
         <fieldset><legend>Typ vstupenky</legend><label class="ticket-option"><input type="radio" name="ticketType" value="350" checked><span><strong>Základní vstupenka</strong><small>Stání</small></span><b>350 Kč</b></label><label class="ticket-option"><input type="radio" name="ticketType" value="450"><span><strong>Místenka ke stolu</strong><small>Místo k sezení</small></span><b>450 Kč</b></label></fieldset>
-        <div id="table-selection-box" hidden><label for="selected-table">Vyberte si volný stůl</label><select id="selected-table" disabled><option value="">Výběr stolů bude dostupný při spuštění rezervací</option></select></div>
+        <div id="table-selection-box" hidden><label for="selected-table">Vyberte si stůl</label><p id="table-availability" class="form-note" role="status">Dostupnost ověříme při otevření přehledu.</p><button id="open-table-picker" class="table-picker-trigger" type="button">Vybrat stůl podle plánku ↗</button><select id="selected-table" aria-describedby="table-availability" disabled><option value="">Nejdříve načtěte přehled stolů</option></select></div>
         <div class="quantity-row"><span>Počet vstupenek</span><div class="stepper"><button type="button" id="minus" aria-label="Odebrat vstupenku">−</button><output id="ticket-count" aria-live="polite">1</output><button type="button" id="plus" aria-label="Přidat vstupenku">+</button></div></div>
         <div id="pdf-options-box" hidden><label class="pdf-option"><input type="checkbox" id="separate-pdf"><span><strong>Rozdělit do samostatných PDF</strong></span></label></div>
         <div class="total-row"><span>Celková částka</span><output id="total-price" aria-live="polite">350 Kč</output></div><button class="button submit" type="submit" disabled>Zobrazit ukázkový přehled</button><p class="form-note">Ukázka formuláře. Rezervace se zatím neodesílají.</p><p id="form-status" role="status"></p>
@@ -106,5 +108,17 @@
   <dialog id="student-modal" aria-labelledby="modal-name"><button class="dialog-close" aria-label="Zavřít detail">×</button><div id="modal-photo"></div><p id="modal-role" class="eyebrow"></p><h2 id="modal-name"></h2><blockquote id="modal-quote"></blockquote></dialog>
   <dialog id="reservation-modal" aria-labelledby="reservation-heading"><button class="dialog-close" aria-label="Zavřít přehled">×</button><p class="eyebrow">Přehled rezervace</p><h2 id="reservation-heading">Ukázkový přehled</h2><dl id="reservation-summary"></dl><p class="preview-notice">Toto je ukázka. Žádná objednávka nebyla odeslána ani místo rezervováno.</p><button class="button dialog-done" type="button">Zpět k formuláři</button></dialog>
   <dialog id="plan-dialog" aria-labelledby="plan-title" aria-describedby="plan-help"><div class="plan-toolbar"><h2 id="plan-title">Plánek sálu</h2><button type="button" id="plan-close" aria-label="Zavřít plánek" autofocus>×</button></div><p id="plan-help">Zvětšete plánek tlačítky. Po zvětšení jej můžete posouvat prstem nebo klávesovými šipkami v oblasti obrázku.</p><div class="plan-zoom"><button type="button" id="plan-less" aria-label="Zmenšit plánek">−</button><output id="plan-scale" aria-live="polite">100 %</output><button type="button" id="plan-more" aria-label="Zvětšit plánek">+</button><button type="button" id="plan-reset">Přizpůsobit</button><a id="plan-original" href="assets/plan-prizemi.webp" target="_blank" rel="noopener">Otevřít obrázek ↗</a></div><div id="plan-viewport" tabindex="0" role="region" aria-label="Posouvatelný plánek"><img id="plan-image" alt=""></div></dialog>
+
+  <dialog id="table-picker" aria-labelledby="table-picker-title" aria-describedby="table-picker-help">
+    <div class="table-picker-header"><div><p class="table-eyebrow">Eurocentrum · místa k sezení</p><h2 id="table-picker-title">Vyberte si stůl</h2></div><button type="button" id="table-picker-close" aria-label="Zavřít výběr stolu">×</button></div>
+    <p id="table-picker-help">Každý stůl má 4 místa. Prohlédněte si jeho polohu na plánku; výběr sám o sobě místa nerezervuje.</p>
+    <div class="table-floors" role="group" aria-label="Podlaží"><button type="button" data-floor="floor" aria-pressed="true">Velký sál <small>Přízemí · 70 stolů</small></button><button type="button" data-floor="balcony" aria-pressed="false">Ochoz <small>Balkón · 20 stolů</small></button></div>
+    <div class="table-snapshot"><p id="table-dialog-status" role="status"></p><button type="button" id="table-refresh">Obnovit dostupnost ↻</button></div>
+    <p id="table-selection-summary" aria-live="polite">Zatím není vybraný stůl.</p>
+    <div id="table-buttons" class="table-buttons" role="group" aria-label="Stoly ve vybraném podlaží"></div>
+    <details id="table-map-details"><summary>Zobrazit polohu stolů na plánku</summary><p class="form-note">Plánek můžete posouvat do stran. Čísla odpovídají přehledu výše.</p><div id="table-map-scroll" tabindex="0" role="region" aria-label="Posuvný plánek stolů"><div id="table-map-canvas"><img id="table-map-image" src="assets/plan-prizemi.webp" width="3417" height="2332" alt="Plánek přízemí s očíslovanými stoly"><div id="table-map-buttons"></div></div></div></details>
+    <div class="table-picker-footer"><p id="table-picker-note">Ukázka výběru, bez vytvoření rezervace.</p><button id="confirm-table" class="button" type="button" disabled>Vybrat stůl</button></div>
+  </dialog>
+
 </body>
 </html>
