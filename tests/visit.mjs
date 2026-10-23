@@ -14,6 +14,15 @@ assert.equal(local(parse(value('DTEND'))),'23/01/2027, 02:00');
 assert.equal(parse(value('DTEND'))-parse(value('DTSTART')),8*3600000);
 assert(unfolded.includes('neplatí na afterparty'));
 const html=read('index.html');assert(html.includes('id="plan-dialog"'));assert(html.includes('aria-describedby="plan-help"'));assert(!html.includes('drive.google.com/file/'));
+const calendarLink=provider=>new URL(html.match(new RegExp('data-calendar="'+provider+'" href="([^"]+)"'))[1].replaceAll('&amp;','&'),'https://olympijskarandovka.cz/');
+assert(html.includes('<details class="calendar-picker">'));
+const google=calendarLink('google'),outlook=calendarLink('outlook');
+assert.equal(google.searchParams.get('dates'),`${value('DTSTART')}/${value('DTEND')}`);
+assert.equal(google.searchParams.get('stz'),'Europe/Prague');
+assert.equal(google.searchParams.get('etz'),'Europe/Prague');
+assert.equal(new Date(outlook.searchParams.get('startdt')).getTime(),parse(value('DTSTART')).getTime());
+assert.equal(new Date(outlook.searchParams.get('enddt')).getTime(),parse(value('DTEND')).getTime());
+assert.equal(calendarLink('apple').pathname,'/ples-2027.ics');
 const data={window:{}};vm.runInNewContext(read('data.js'),data);
 for(const person of [...data.window.PLES_DATA.studentsData,...data.window.PLES_DATA.topTeachersData])if(person.img){
   assert(fs.existsSync(new URL(person.img,root)));assert(fs.existsSync(new URL(person.img.replace('.webp','-360.webp'),root)));
