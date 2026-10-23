@@ -89,3 +89,5 @@ input::placeholder{color:#586473;opacity:1}
 
 /* Keep the choreographers together while allowing large text to reflow. */
 .program-performers{max-width:50ch}.program-credit{display:block}.program-credit+.program-credit{margin-top:8px}.program-authors{display:flex;flex-wrap:wrap;column-gap:.3em;margin-top:2px;color:var(--ink);font-weight:750;letter-spacing:-.02em}.program-authors>span{white-space:nowrap}
+
+.calendar-options .calendar-fallback{margin:0;padding:0 12px 10px;font-size:12px;line-height:1.6}.calendar-options .calendar-fallback a{display:inline;padding:0;border-radius:2px;font-size:12px;text-decoration:underline;text-underline-offset:3px}
