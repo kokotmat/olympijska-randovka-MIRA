@@ -23,3 +23,22 @@ window.PLES_TABLE_LAYOUT=(()=>{
   }
   return {floor,balcony};
 })();
+
+// A schematic projection of both levels, rotated so the stage is at the top.
+// Each original table keeps its number and its neighbours within that level.
+window.PLES_COMBINED_LAYOUT=(()=>{
+  const output={};
+  for(const [n,p] of Object.entries(window.PLES_TABLE_LAYOUT.floor)){
+    const x=240+(p.y/100*1310-128)/1147*1120;
+    const y=350+(1218-p.x/100*1920)/1168*1330;
+    output['Sál - Stůl '+n]={x:x/1600*100,y:y/2100*100,floor:'floor',number:Number(n),label:'P'+n};
+  }
+  for(const n of Object.keys(window.PLES_TABLE_LAYOUT.balcony)){
+    const number=Number(n);let x,y;
+    if(number<=5){x=125;y=500+(number-1)*225;}
+    else if(number<=15){x=330+Math.floor((number-6)/2)*200;y=number%2===0?1790:1880;}
+    else{x=350+(20-number)*225;y=2000;}
+    output['Ochoz - Stůl '+n]={x:x/1600*100,y:y/2100*100,floor:'balcony',number,label:'O'+n};
+  }
+  return output;
+})();

@@ -20,7 +20,7 @@
   document.querySelectorAll('[data-plan]').forEach(link => link.addEventListener('click', event => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault(); opener = link;
-    document.querySelector('#plan-title').textContent = link.dataset.plan === 'prizemi' ? 'Velký sál · přízemí' : 'Ochoz · balkón';
+    document.querySelector('#plan-title').textContent = link.dataset.plan === 'spolecny' ? 'Přízemí a ochoz · jeviště nahoře' : link.dataset.plan === 'prizemi' ? 'Velký sál · přízemí' : 'Ochoz · balkón';
     image.src = link.href;
     image.alt = link.querySelector('img').alt;
     document.querySelector('#plan-original').href = link.href;
