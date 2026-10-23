@@ -94,3 +94,7 @@ Oficiální dokumentace:
 - [Web apps](https://developers.google.com/apps-script/guides/web)
 - [Content Service](https://developers.google.com/apps-script/guides/content)
 - [LockService](https://developers.google.com/apps-script/reference/lock/lock-service)
+
+## Aktualizace 23. 10. 2026
+
+Aktuální zdroj opravy přihlášení a diagnostiky je v backend/production. Postup a přesné pořadí migrace uvádí backend/production/NASAZENI.md. GitHub/Cloudflare **nenasazuje Apps Script**; dokud není nový klíč v obou službách a aktualizovaná verze Google nasazení, oprava backendu není v ostrém provozu. Prodej a brána zůstávají zavřené. Rozpracovanou starší větev produkčních rezervací nepřipojujte k webu jako celek.

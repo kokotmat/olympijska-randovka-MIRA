@@ -16,3 +16,6 @@ jobs:
           node-version: '22'
       - run: node tests/site-contract.mjs
       - run: node tests/scanner-gateway.mjs
+      - run: node tests/production-system.mjs
+      - run: node tests/visit.mjs
+      - run: node tests/scanner-client.mjs
