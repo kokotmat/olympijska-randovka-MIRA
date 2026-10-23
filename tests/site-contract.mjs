@@ -17,7 +17,7 @@ assert.equal(event['@type'],'Event');assert.equal(event.url,'https://olympijskar
 assert.equal(event.location.address.streetAddress,'Jiráskova 2047/7');
 assert.match(event.startDate,/2027-01-22T18:00:00\+01:00/);
 const image=html.match(/property="og:image" content="([^"]+)"/)[1];
-assert.equal(image,'https://olympijskarandovka.cz/assets/sdileni-2027.jpg');
+assert.equal(image,'https://olympijskarandovka.cz/assets/sdileni-2027-minimal.jpg');
 for(const match of html.matchAll(/(?:src|href)="([^"]+)"/g)){
   const value=match[1];
   if(value.startsWith('#'))assert(html.includes(`id="${value.slice(1)}"`),value);
@@ -38,7 +38,7 @@ for(const s of sponsors){assert.match(s.url,/^https:\/\//);assert(fs.existsSync(
 assert(sponsors.some(s=>s.key==='cityzen'&&s.logo.endsWith('.svg')));
 assert(sponsors.some(s=>s.key==='shocart'&&s.url==='https://shocart.cz/'));
 assert(fs.statSync(path.join(root,'assets/favicon-32.png')).size<15000);
-assert(fs.statSync(path.join(root,'assets/sdileni-2027.jpg')).size<300000);
+assert(fs.statSync(path.join(root,'assets/sdileni-2027-minimal.jpg')).size<300000);
 const scanner=read('kontrola-vstupenek.html');
 assert(scanner.includes('OSTRÝ REŽIM'));assert(!scanner.includes('OSTRÉ ODBAVENÍ'));
 assert(scanner.includes('body.message'));assert(scanner.includes('background:#006b96;color:white'));
