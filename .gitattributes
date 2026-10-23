@@ -1,0 +1,2 @@
+# Calendar wire format is CRLF on every host (RFC 5545).
+*.ics -text
