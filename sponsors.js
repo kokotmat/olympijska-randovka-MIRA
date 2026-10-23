@@ -83,5 +83,77 @@ window.PLES_SPONSORS = [
     "key": "eroshop",
     "logo": "assets/sponsors/eroshop.webp",
     "url": "https://www.ero-shop.cz/"
+  },
+  {
+    "name": "Státní muzeum skla a bižuterie v Jablonci nad Nisou",
+    "key": "msb-jablonec",
+    "logo": "assets/sponsors/msb-jablonec.svg",
+    "url": "https://www.msb-jablonec.cz/"
+  },
+  {
+    "name": "Preciosa",
+    "key": "preciosa",
+    "logo": "assets/sponsors/preciosa.svg",
+    "url": "https://www.preciosa.com/"
+  },
+  {
+    "name": "České rekordy",
+    "key": "ceske-rekordy",
+    "logo": "assets/sponsors/ceske-rekordy.svg",
+    "url": "https://www.dobryden.cz/"
+  },
+  {
+    "name": "Pekařství Jan Mašek",
+    "key": "pekarstvi-masek",
+    "logo": "assets/sponsors/pekarstvi-masek.webp",
+    "url": "https://pekarstvimasek.cz/"
+  },
+  {
+    "name": "Kina Jablonec",
+    "key": "kina-jablonec",
+    "logo": "assets/sponsors/kina-jablonec.webp",
+    "url": "https://www.kinajablonec.cz/"
+  },
+  {
+    "name": "Automoto Museum Lučany",
+    "key": "automoto-lucany",
+    "logo": "assets/sponsors/automoto-lucany.webp",
+    "url": "https://www.automoto-museum.cz/"
+  },
+  {
+    "name": "DETESK",
+    "key": "detesk",
+    "logo": "assets/sponsors/detesk.svg",
+    "url": "https://detesk.cz/cs/"
+  },
+  {
+    "name": "VŠCHT Praha",
+    "key": "vscht",
+    "logo": "assets/sponsors/vscht.webp",
+    "url": "https://www.vscht.cz/"
+  },
+  {
+    "name": "Matějovský",
+    "key": "matejovsky",
+    "logo": "assets/sponsors/matejovsky.svg",
+    "url": "https://www.matejovsky-povleceni.cz/"
+  },
+  {
+    "name": "ABB",
+    "key": "abb",
+    "logo": "assets/sponsors/abb.webp",
+    "url": "https://new.abb.com/cz"
+  },
+  {
+    "name": "SUNDISK",
+    "key": "sundisk",
+    "logo": "assets/sponsors/sundisk.webp",
+    "url": "https://www.sundisk.cz/cs/"
+  },
+  {
+    "name": "Salon Sweet",
+    "key": "salon-sweet",
+    "logo": "assets/sponsors/salon-sweet.webp",
+    "url": "https://www.salonsweet.cz/"
   }
 ];
