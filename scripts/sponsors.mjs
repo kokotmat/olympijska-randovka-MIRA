@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const sponsors=JSON.parse(fs.readFileSync(path.join(root,'sponsors.json'),'utf8'));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const logo=(s,duplicate=false)=>`<a class="sponsor-logo-item" data-sponsor="${esc(s.key)}" href="${esc(s.url)}" target="_blank" rel="noopener" ${duplicate?'tabindex="-1"':`aria-label="${esc(s.name)} — web sponzora"`}><img src="${esc(s.logo)}" alt="${duplicate?'':esc(s.name)}" decoding="async" loading="lazy"></a>`;
+const groups=[false,true,true].map(duplicate=>`<div class="sponsor-group"${duplicate?' aria-hidden="true"':''}>${sponsors.map(s=>logo(s,duplicate)).join('')}</div>`).join('');
+let html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const start=html.indexOf('<div id="sponsor-logos"');
+const end=html.indexOf('</section>',start);
+if(start<0||end<0)throw new Error('Sponsor section markers missing');
+html=html.slice(0,start)+`<div id="sponsor-logos" class="sponsor-logos"><div class="sponsor-track">${groups}</div></div></div><details class="wrap all-sponsors"><summary>Všichni naši partneři (${sponsors.length})</summary><div class="sponsor-directory">${sponsors.map(s=>logo(s)).join('')}</div></details></section>`+html.slice(end+10);
+fs.writeFileSync(path.join(root,'index.html'),html);
+fs.writeFileSync(path.join(root,'sponsors.js'),'// Generated from sponsors.json by node scripts/sponsors.mjs.\nwindow.PLES_SPONSORS = '+JSON.stringify(sponsors,null,2)+';\n');
+console.log(`Generated ${sponsors.length} sponsors: accessible HTML and runtime configuration.`);

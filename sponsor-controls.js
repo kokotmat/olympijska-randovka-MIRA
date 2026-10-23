@@ -16,7 +16,7 @@
   controls.innerHTML='<button type="button" aria-label="Předchozí sponzoři"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button type="button" aria-label="Další sponzoři"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>';
   row.append(controls);
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
-  let cycle=0,drag=null,hover=false,touching=false,waitUntil=0,suppressUntil=0,position=0,lastTime=0,frame=0;
+  let cycle=0,drag=null,hover=false,touching=false,waitUntil=0,suppressUntil=0,position=0,lastTime=0,frame=0,inView=false;
   const now=()=>performance.now();
   const pauseInteraction=()=>{waitUntil=now()+2000;};
   function normalize(){if(!cycle)return;let value=viewport.scrollLeft;while(value<cycle*.5)value+=cycle;while(value>=cycle*1.5)value-=cycle;viewport.scrollLeft=value;position=value;}
@@ -61,13 +61,14 @@
     const dt=Math.min((time-lastTime)/1000,.05);lastTime=time;
     const paused=reduced.matches||row.classList.contains('paused')||hover||touching||drag||row.matches(':focus-within')||time<waitUntil;
     if(!paused&&cycle){if(position<cycle*.5||position>=cycle*1.5)normalize();position+=dt*22;viewport.scrollLeft=position;}else position=viewport.scrollLeft;
-    if(!document.hidden&&!reduced.matches)frame=requestAnimationFrame(tick);
+    if(!document.hidden&&!reduced.matches&&inView)frame=requestAnimationFrame(tick);
   }
-  function start(){if(!frame&&!document.hidden&&!reduced.matches){lastTime=now();frame=requestAnimationFrame(tick);}}
+  function start(){if(!frame&&!document.hidden&&!reduced.matches&&inView){lastTime=now();frame=requestAnimationFrame(tick);}}
   reduced.addEventListener('change',()=>{if(frame)cancelAnimationFrame(frame);frame=0;position=viewport.scrollLeft;start();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){if(frame)cancelAnimationFrame(frame);frame=0;}else start();});
   window.addEventListener('resize',measure,{passive:true});
   if(window.ResizeObserver){const observer=new ResizeObserver(measure);observer.observe(viewport);}
   document.fonts.ready.then(measure);
+  if(window.IntersectionObserver){new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;if(!inView){cancelAnimationFrame(frame);frame=0;}else start();},{rootMargin:'100px'}).observe(viewport);}else inView=true;
   measure();start();
 })();

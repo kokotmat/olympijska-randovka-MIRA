@@ -7,13 +7,13 @@
   motion.add('(prefers-reduced-motion: no-preference)', () => {
     const desktop=()=>window.matchMedia('(min-width: 901px)').matches;
     if(window.scrollY < 100) {
-      gsap.from('.title-block > span',{y:42,rotation:2,opacity:0,duration:.9,stagger:.12,ease:'power3.out',clearProps:'transform,opacity'});
+      gsap.from('.title-block > span > span',{y:42,rotation:2,opacity:0,duration:.9,stagger:.12,ease:'power3.out',clearProps:'transform,opacity'});
       gsap.from('.hero-details,.hero-actions',{y:20,opacity:0,duration:.7,stagger:.1,delay:.35,clearProps:'transform,opacity'});
-      gsap.from('.class-photo',{rotation:-7,scale:.92,duration:1.1,ease:'power3.out'});
+      gsap.from('.photo-entrance',{rotation:-7,scale:.92,duration:1.1,ease:'power3.out',clearProps:'transform'});
     }
     gsap.to('.class-photo',{y:()=>desktop()?-45:-20,rotation:()=>desktop()?5:2.5,ease:'none',scrollTrigger:{trigger:'.hero-layout',start:'top top',end:'bottom top',scrub:1,invalidateOnRefresh:true}});
     gsap.to('.title-block > span:nth-child(2)',{x:()=>desktop()?-44:-16,ease:'none',scrollTrigger:{trigger:'.hero-layout',start:'top top',end:'bottom top',scrub:.8,invalidateOnRefresh:true}});
-    gsap.to('.title-block > span:nth-child(3)',{x:()=>desktop()?44:16,ease:'none',scrollTrigger:{trigger:'.hero-layout',start:'top top',end:'bottom top',scrub:.8}});
+    gsap.to('.title-block > span:nth-child(3)',{x:()=>desktop()?44:16,ease:'none',scrollTrigger:{trigger:'.hero-layout',start:'top top',end:'bottom top',scrub:.8,invalidateOnRefresh:true}});
     gsap.from('#countdown > span',{scale:.7,y:24,opacity:0,stagger:.1,duration:.8,ease:'back.out(1.4)',clearProps:'transform,opacity',scrollTrigger:{trigger:'.countdown-row',start:'top 90%',once:true}});
     let teamContext;
     let focusHandlers=[];
@@ -55,7 +55,9 @@
     const track=section.querySelector('.schedule');
     const viewport=section.querySelector('.schedule-window');
     const distance=()=>Math.max(0,track.scrollWidth-viewport.clientWidth);
+    const keyboard=event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();window.scrollBy({top:event.key==='ArrowRight'?240:-240,behavior:'smooth'});};
+    viewport.addEventListener('keydown',keyboard);
     gsap.to(track,{x:()=>-distance(),ease:'none',scrollTrigger:{trigger:section,start:'top 104px',end:()=>'+='+Math.max(500,distance()),pin:true,scrub:1,invalidateOnRefresh:true,anticipatePin:1}});
-    return ()=>section.classList.remove('is-horizontal');
+    return ()=>{viewport.removeEventListener('keydown',keyboard);section.classList.remove('is-horizontal');gsap.set(track,{clearProps:'transform'});};
   });
 })();
