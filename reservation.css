@@ -21,5 +21,7 @@
  .table-picker-content{grid-template-columns:minmax(0,1fr) 230px}
  .table-selection-panel{padding:18px}.table-picker-footer{padding:12px 22px}
  #plan-dialog{width:calc(100% - 24px);max-width:none;height:calc(100dvh - 24px);max-height:none;padding:16px 22px}
- #plan-viewport{height:calc(100dvh - 190px)}
+ #plan-dialog[open]{display:flex;flex-direction:column;overflow:hidden}
+ #plan-dialog .plan-toolbar,#plan-help,#plan-dialog .plan-zoom{flex-shrink:0}
+ #plan-viewport{height:auto;flex:1;min-height:0}
 }
