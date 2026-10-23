@@ -128,12 +128,21 @@ window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
     $('selected-table').required=seating&&Boolean(config.reservationAdapter);
     $('pdf-options-box').hidden=count===1;
     if(count===1)$('separate-pdf').checked=false;
-    $('minus').disabled=count===1;$('plus').disabled=count>=(seating?4:10);
+    $('minus').disabled=count===1;$('plus').disabled=count>=(seating?(window.PLES_TABLE_PICKER?.maxCount()||4):10);
+    $('quantity-help').textContent=seating?'1 až 4 místa u jednoho stolu. Pro další stůl vytvořte další rezervaci.':'Až 10 vstupenek na stání v jedné rezervaci.';
+    $('purchase-detail').textContent=seating?`${count}× místo k sezení · ${$('selected-table').value||'stůl zatím nevybrán'}`:`${count}× vstupenka na stání`;
     window.PLES_TABLE_PICKER?.setCount(count);
+    if(window.ScrollTrigger)requestAnimationFrame(()=>window.ScrollTrigger.refresh());
   }
   $('minus').addEventListener('click',()=>{count=Math.max(1,count-1);updateTickets();});
   $('plus').addEventListener('click',()=>{count=Math.min(10,count+1);updateTickets();});
-  document.querySelectorAll('input[name="ticketType"]').forEach(radio=>radio.addEventListener('change',()=>{updateTickets();if(selectedType()==='450')loadTables();}));
+  document.querySelectorAll('input[name="ticketType"]').forEach(radio=>radio.addEventListener('change',()=>{
+    if(selectedType()==='450'&&count>4){count=4;$('form-status').textContent='U jednoho stolu jsou 4 místa. Počet jsme upravili na 4.';}
+    else $('form-status').textContent='';
+    updateTickets();if(selectedType()==='450')loadTables();
+  }));
+  document.addEventListener('ples:quantity',e=>{if(Number.isInteger(e.detail)&&e.detail>=1&&e.detail<=4){count=e.detail;updateTickets();}});
+  $('selected-table').addEventListener('change',updateTickets);
   $('reservation-modal').querySelector('.dialog-done').addEventListener('click',()=>$('reservation-modal').close());
   if(config.reservationAdapter){$('sales-notice').hidden=true;['buyer-name','buyer-email'].forEach(id=>{$(id).disabled=false;$(id).required=true;});document.querySelector('.submit').textContent='Dokončit rezervaci';document.querySelector('.submit + .form-note').textContent='Vstupenky vám zašleme na uvedený e-mail.';}
   $('ticket-form').addEventListener('submit',async event=>{
