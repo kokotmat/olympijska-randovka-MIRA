@@ -32,6 +32,42 @@ window.PLES_CONFIG = {
       "key": "svijany",
       "logo": "assets/sponsors/svijany.png",
       "url": "https://www.pivovarsvijany.cz/"
+    },
+    {
+      "name": "Astodelo",
+      "key": "astodelo",
+      "logo": "assets/sponsors/astodelo.png",
+      "url": "https://astodelo.cz/"
+    },
+    {
+      "name": "CBS",
+      "key": "cbs",
+      "logo": "assets/sponsors/cbs.png",
+      "url": "https://www.cbs-cesko.cz/"
+    },
+    {
+      "name": "Epligo",
+      "key": "epligo",
+      "logo": "assets/sponsors/epligo.png",
+      "url": "https://www.epligo.cz/"
+    },
+    {
+      "name": "FC Hradec Králové",
+      "key": "fc-hradec-kralove",
+      "logo": "assets/sponsors/fc-hradec-kralove.png",
+      "url": "https://www.fchk.cz/"
+    },
+    {
+      "name": "Tary Povoroznyk",
+      "key": "tary",
+      "logo": "assets/sponsors/tary.png",
+      "url": "https://www.tary.cz/"
+    },
+    {
+      "name": "Werso",
+      "key": "werso",
+      "logo": "assets/sponsors/werso.png",
+      "url": "https://www.werso.cz/"
     }
   ],
   "reservationAdapter": {
