@@ -17,6 +17,13 @@ const html=read('index.html');assert(html.includes('id="plan-dialog"'));assert(h
 const calendarLink=provider=>new URL(html.match(new RegExp('data-calendar="'+provider+'" href="([^"]+)"'))[1].replaceAll('&amp;','&'),'https://olympijskarandovka.cz/');
 assert(html.includes('<details class="calendar-picker">'));
 const google=calendarLink('google'),outlook=calendarLink('outlook');
+assert.equal(google.pathname,'/calendar/render');
+assert.equal(google.searchParams.get('action'),'TEMPLATE');
+assert.equal(google.searchParams.get('ctz'),'Europe/Prague');
+const googleWeb=calendarLink('google-web');
+assert.equal(googleWeb.hostname,'www.google.com');
+assert.equal(googleWeb.pathname,'/calendar/render');
+assert.equal(googleWeb.search,google.search,'Fallback must carry the same event details');
 assert.equal(google.searchParams.get('dates'),`${value('DTSTART')}/${value('DTEND')}`);
 assert.equal(google.searchParams.get('stz'),'Europe/Prague');
 assert.equal(google.searchParams.get('etz'),'Europe/Prague');
