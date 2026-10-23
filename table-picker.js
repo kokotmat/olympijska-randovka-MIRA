@@ -74,7 +74,7 @@
       if(d.state==='open'&&(!d.tables||Object.keys(model).some(t=>!Number.isInteger(d.tables[t])||d.tables[t]<0||d.tables[t]>4)))throw Error('AVAILABILITY');snapshot=d;
     }catch(_){snapshot=null;}finally{clearTimeout(timeout);loading=false;options();render();}
   }
-  $('open-table-picker').addEventListener('click',()=>{pending=select.value;floor='all';render();dialog.showModal();view(true);setZoom(fit());if(!fresh())refresh();clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)refresh();},30000);});
+  $('open-table-picker').addEventListener('click',()=>{pending=select.value;floor='all';render();dialog.showModal();view(true);setZoom(viewport.clientWidth>650?Math.max(fit(),.55):fit());viewport.scrollTop=0;if(!fresh())refresh();clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)refresh();},30000);});
   $('table-picker-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>{clearInterval(timer);$('open-table-picker').focus({preventScroll:true});});
   document.querySelectorAll('[data-floor-filter]').forEach(b=>b.addEventListener('click',()=>{floor=b.dataset.floorFilter;render();}));
   $('table-view-map').addEventListener('click',()=>view(true));$('table-view-list').addEventListener('click',()=>view(false));

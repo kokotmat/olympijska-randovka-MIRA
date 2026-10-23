@@ -12,3 +12,5 @@ Společný vektorový plánek zobrazuje 70 stolů přízemí a 20 stolů ochozu,
 Ověření: všech sedm sad v `.github/workflows/web.yml`; rozšířené klientské testy kontrolují 90 identit, výběr ochozu, součet, částečnou kapacitu, zvětšení gestem a potlačení náhodného kliknutí po gestu. Backendové testy používají pouze paměťová data, žádný skutečný bankovní, poštovní ani rezervační zápis. Vizuálně ověřeno v prohlížeči na desktopu a při rozměru 390 × 844. Fyzický iPhone/Safari a skutečný distribuovaný nápor tímto ověřeny nejsou.
 
 Změna nezapíná prodej ani odbavení a nemění přístupové údaje. Před otevřením prodeje je stále nutné samostatně zapojit a ověřit skutečný frontendový rezervační adaptér; `reservationAdapter` zůstává `null`.
+
+Úprava půdorysu: jeviště navazuje na sál přes zkosení; parket není oddělenou místností. Dveře jsou orientační podle původního půdorysu. Pravá část ochozu je podle upřesnění pořadatele nepřístupná zvukařská kabina, šedě šrafovaná a bez výběru. Desktop používá téměř celé okno a počáteční přiblížení 55 %, s možností zobrazit celý plánek. Mobil si zachovává přizpůsobení celého plánku. Křížek legendy je kreslen CSS uvnitř čtverečku.
