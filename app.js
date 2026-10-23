@@ -9,10 +9,10 @@ window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
   const discipline = person => person.discipline === 'Disciplína' ? '' : (person.discipline || person.role || '');
   const initials = name => name.split(' ').map(part=>part[0]).slice(0,2).join('');
   function photo(person, lazy = true) {
-    return person.img ? `<img src="${esc(person.img)}" alt="${esc(person.name)}" ${lazy ? 'loading="lazy"' : ''} decoding="async">` : `<span class="initials" aria-label="Fotografie zatím není k dispozici">${esc(initials(person.name))}</span>`;
+    return person.img ? `<img src="${esc(person.img)}" alt="${esc(person.name)}" width="720" height="900" srcset="${esc(person.img.replace(/\.webp$/, '-360.webp'))} 360w, ${esc(person.img)} 720w" sizes="${lazy ? '(max-width:650px) 45vw, (max-width:1000px) 30vw, 220px' : '160px'}" ${lazy ? 'loading="lazy"' : ''} decoding="async">` : `<span class="initials" aria-label="Fotografie zatím není k dispozici">${esc(initials(person.name))}</span>`;
   }
   document.querySelectorAll('dialog').forEach(dialog => {
-    dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
+    dialog.querySelector('.dialog-close')?.addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', event => {if(event.target === dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
   });
   function openPerson(person) {

@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const root=new URL('../',import.meta.url),read=p=>fs.readFileSync(new URL(p,root),'utf8');
+const ics=read('ples-2027.ics');
+assert(!ics.replaceAll('\r\n','').includes('\n'),'Calendar must use CRLF');
+for(const line of ics.split('\r\n'))assert(Buffer.byteLength(line)<=75);
+const unfolded=ics.replace(/\r\n /g,'');
+const value=key=>unfolded.match(new RegExp('^'+key+':(.+)$','m'))[1].trim();
+const parse=s=>new Date(s.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/,'$1-$2-$3T$4:$5:$6Z'));
+const local=date=>new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Prague',dateStyle:'short',timeStyle:'short'}).format(date);
+assert.equal(local(parse(value('DTSTART'))),'22/01/2027, 18:00');
+assert.equal(local(parse(value('DTEND'))),'23/01/2027, 02:00');
+assert.equal(parse(value('DTEND'))-parse(value('DTSTART')),8*3600000);
+assert(unfolded.includes('neplatí na afterparty'));
+const html=read('index.html');assert(html.includes('id="plan-dialog"'));assert(html.includes('aria-describedby="plan-help"'));assert(!html.includes('drive.google.com/file/'));
+const data={window:{}};vm.runInNewContext(read('data.js'),data);
+for(const person of [...data.window.PLES_DATA.studentsData,...data.window.PLES_DATA.topTeachersData])if(person.img){
+  assert(fs.existsSync(new URL(person.img,root)));assert(fs.existsSync(new URL(person.img.replace('.webp','-360.webp'),root)));
+}
+console.log('PASS calendar RFC folding, Prague dates/overnight duration, afterparty scope, local floor plans and responsive portrait assets.');

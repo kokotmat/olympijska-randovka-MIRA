@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Olympijska Randovka//Ples 2027//CS
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:ples-2027@olympijskarandovka.cz
+DTSTAMP:20261023T120000Z
+DTSTART:20270122T170000Z
+DTEND:20270123T010000Z
+SUMMARY:Olympijská Randovka — maturitní ples 2027
+LOCATION:Eurocentrum\, Jiráskova 2047/7\, Jablonec nad Nisou
+DESCRIPTION:Otevření sálu v 18:00. Slavnostní zahájení v 19:00.\nVstu
+ penka na ples neplatí na afterparty v Klubu Stage.
+URL:https://olympijskarandovka.cz/
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR
