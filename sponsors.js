@@ -77,5 +77,11 @@ window.PLES_SPONSORS = [
     "key": "shocart",
     "logo": "assets/sponsors/shocart.webp",
     "url": "https://shocart.cz/"
+  },
+  {
+    "name": "Eroshop",
+    "key": "eroshop",
+    "logo": "assets/sponsors/eroshop.webp",
+    "url": "https://www.ero-shop.cz/"
   }
 ];
