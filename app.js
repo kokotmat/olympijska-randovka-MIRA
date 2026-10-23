@@ -1,81 +1,12 @@
 /* Frontend configuration. Existing Apps Script payload names are retained. */
-window.PLES_CONFIG = {
-  "sponsors": [
-    {
-      "name": "Jablotron",
-      "key": "jablotron",
-      "logo": "assets/sponsors/jablotron.png",
-      "url": "https://www.jablotron.com/"
-    },
-    {
-      "name": "Bit of Happiness",
-      "key": "happiness",
-      "logo": "assets/sponsors/bit-of-happiness.png",
-      "url": "https://www.bfhappiness.com/"
-    },
-    {
-      "name": "Autoškola Šefr",
-      "key": "autoskola",
-      "logo": "assets/sponsors/autoskola.png",
-      "url": "https://www.autoskola-sefr.cz/"
-    },
-    {
-      "name": "Kitl",
-      "key": "kitl",
-      "logo": "assets/sponsors/kitl.png",
-      "url": "https://www.kitl.cz/"
-    },
-    {
-      "name": "Svijany",
-      "key": "svijany",
-      "logo": "assets/sponsors/svijany.png",
-      "url": "https://www.pivovarsvijany.cz/"
-    },
-    {
-      "name": "Astodelo",
-      "key": "astodelo",
-      "logo": "assets/sponsors/astodelo.png",
-      "url": "https://astodelo.cz/"
-    },
-    {
-      "name": "CBS",
-      "key": "cbs",
-      "logo": "assets/sponsors/cbs.png",
-      "url": "https://www.cbs-cesko.cz/"
-    },
-    {
-      "name": "Epligo",
-      "key": "epligo",
-      "logo": "assets/sponsors/epligo.png",
-      "url": "https://www.epligo.cz/"
-    },
-    {
-      "name": "FC Hradec Králové",
-      "key": "fc-hradec-kralove",
-      "logo": "assets/sponsors/fc-hradec-kralove.png",
-      "url": "https://www.fchk.cz/"
-    },
-    {
-      "name": "Tary Povoroznyk",
-      "key": "tary",
-      "logo": "assets/sponsors/tary.png",
-      "url": "https://www.tary.cz/"
-    },
-    {
-      "name": "Werso",
-      "key": "werso",
-      "logo": "assets/sponsors/werso.png",
-      "url": "https://www.werso.cz/"
-    }
-  ],
-  "reservationAdapter": null
-};
+window.PLES_CONFIG = {sponsors:window.PLES_SPONSORS, reservationAdapter:null};
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
   const { studentsData, topTeachersData } = window.PLES_DATA;
   const config = window.PLES_CONFIG;
   const esc = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const discipline = person => person.discipline === 'Disciplína' ? '' : (person.discipline || person.role || '');
   const initials = name => name.split(' ').map(part=>part[0]).slice(0,2).join('');
   function photo(person, lazy = true) {
     return person.img ? `<img src="${esc(person.img)}" alt="${esc(person.name)}" ${lazy ? 'loading="lazy"' : ''} decoding="async">` : `<span class="initials" aria-label="Fotografie zatím není k dispozici">${esc(initials(person.name))}</span>`;
@@ -87,7 +18,7 @@ window.PLES_CONFIG = {
   function openPerson(person) {
     $('modal-photo').innerHTML = photo(person,false);
     $('modal-name').textContent = person.name;
-    const role = person.discipline === 'Disciplína' ? '' : (person.discipline || person.role);
+    const role = discipline(person);
     $('modal-role').textContent = role;
     $('modal-role').hidden = !role;
     const quote = /^(Hláška|Moje oblíbená hláška)\.{3}$/.test(person.quote) ? '' : person.quote;
@@ -105,7 +36,7 @@ window.PLES_CONFIG = {
     const query=normalize($('student-search').value.trim());
     let results=0;
     groups.forEach(group=>{
-      const people=group.data.filter(person=>(filter==='all'||filter===group.type)&&normalize(person.name+' '+(person.discipline||person.role)).includes(query));
+      const people=group.data.filter(person=>(filter==='all'||filter===group.type)&&normalize(person.name+' '+discipline(person)).includes(query));
       $(group.section).hidden=people.length===0;
       $(group.container).replaceChildren();
       results+=people.length;
@@ -115,7 +46,7 @@ window.PLES_CONFIG = {
         button.className=group.type==='students'?'student-card':'teacher-card';
         button.setAttribute('aria-label','Detail: '+person.name);
         button.innerHTML=group.type==='students'
-          ? `<div class="portrait">${photo(person)}</div><div class="person-meta"><span>${person.discipline === 'Disciplína' ? '' : esc(person.discipline || '')}</span></div><h4>${esc(person.name)}</h4>`
+          ? `<div class="portrait">${photo(person)}</div>${discipline(person) ? `<div class="person-meta"><span>${esc(discipline(person))}</span></div>` : ''}<h4>${esc(person.name)}</h4>`
           : `${photo(person)}<div><h4>${esc(person.name)}</h4><blockquote>„${esc(person.quote)}“</blockquote></div>`;
         button.addEventListener('click',()=>openPerson(person));
         $(group.container).append(button);
@@ -129,21 +60,27 @@ window.PLES_CONFIG = {
     document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
     renderTeam();
   }));
-  $('student-search').addEventListener('input',renderTeam);
+  let searchFrame=0;
+  $('student-search').addEventListener('input',()=>{cancelAnimationFrame(searchFrame);searchFrame=requestAnimationFrame(renderTeam);});
   renderTeam();
+  document.addEventListener('toggle',event=>{if(event.target.tagName==='DETAILS'&&window.ScrollTrigger)requestAnimationFrame(()=>window.ScrollTrigger.refresh());},true);
   const targetDate=new Date('2027-01-22T19:00:00+01:00').getTime();
   function updateCountdown(){
     const difference=Math.max(0,targetDate-Date.now());
-    if(!difference){$('countdown').textContent='Olympijský oheň už byl zapálen.';return;}
+    if(!difference){if($('cd-days'))$('countdown').textContent='Olympijský oheň už byl zapálen.';if(typeof countdownTimer!=='undefined')clearInterval(countdownTimer);return;}
     const values=[Math.floor(difference/86400000),Math.floor(difference/3600000)%24,Math.floor(difference/60000)%60,Math.floor(difference/1000)%60];
     ['days','hours','minutes','seconds'].forEach((part,i)=>$('cd-'+part).textContent=String(values[i]).padStart(2,'0'));
   }
-  updateCountdown();setInterval(updateCountdown,1000);
+  let countdownTimer;updateCountdown();
+  const countdownVisibility=()=>{clearInterval(countdownTimer);if(!document.hidden&&Date.now()<targetDate){updateCountdown();countdownTimer=setInterval(updateCountdown,1000);}else if(Date.now()>=targetDate)updateCountdown();};
+  document.addEventListener('visibilitychange',countdownVisibility);countdownVisibility();
   const menu=$('mobile-menu-btn');
   function closeMenu(){menu.setAttribute('aria-expanded','false');$('main-nav').classList.remove('open');}
   menu.addEventListener('click',()=>{const expanded=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(expanded));$('main-nav').classList.toggle('open',expanded);});
   $('main-nav').querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMenu));
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){const wasOpen=menu.getAttribute('aria-expanded')==='true';closeMenu();if(wasOpen)menu.focus();}});
+  document.addEventListener('pointerdown',e=>{if(!e.target.closest('.site-header'))closeMenu();});
+  const menuSize=matchMedia('(min-width:651px)');menuSize.addEventListener('change',closeMenu);
   const motionButton = $('sponsor-motion');
   if (motionButton) motionButton.addEventListener('click', () => {
     const paused = motionButton.getAttribute('aria-pressed') !== 'true';
@@ -151,7 +88,7 @@ window.PLES_CONFIG = {
     motionButton.setAttribute('aria-label', paused ? 'Spustit pohyb sponzorů' : 'Pozastavit pohyb sponzorů');
     document.querySelector('.sponsor-row').classList.toggle('paused', paused);
   });
-  if(config.sponsors.length){
+  if(config.sponsors.length && !$('sponsor-logos').querySelector('.sponsor-track')){
     if(motionButton) motionButton.hidden = false;
     const track=document.createElement('div');
     track.className='sponsor-track';
@@ -190,7 +127,7 @@ window.PLES_CONFIG = {
     Object.entries(tables).forEach(([name,seats])=>{if(Number(seats)>=count)(name.startsWith('Sál')?floor:balcony).append(new Option(name+' (Volno: '+seats+' míst)',name));});
     select.append(floor,balcony);select.disabled=false;
     if([...select.options].some(option=>option.value===previous))select.value=previous;
-    if(select.options.length===1){select.options[0].textContent='Pro vybraný počet osob nejsou stoly';}
+    if(!Object.values(tables).some(seats=>Number(seats)>=count)){select.options[0].textContent='Pro vybraný počet osob nejsou stoly';}
   }
   async function loadTables(){
     if(!config.reservationAdapter)return;
@@ -215,11 +152,11 @@ window.PLES_CONFIG = {
   $('plus').addEventListener('click',()=>{count=Math.min(10,count+1);updateTickets();});
   document.querySelectorAll('input[name="ticketType"]').forEach(radio=>radio.addEventListener('change',()=>{updateTickets();if(selectedType()==='450')loadTables();}));
   $('reservation-modal').querySelector('.dialog-done').addEventListener('click',()=>$('reservation-modal').close());
-  if(config.reservationAdapter){document.querySelector('.submit').textContent='Dokončit rezervaci';document.querySelector('.submit + .form-note').textContent='Vstupenky vám zašleme na uvedený e-mail.';}
+  if(config.reservationAdapter){$('sales-notice').hidden=true;['buyer-name','buyer-email'].forEach(id=>{$(id).disabled=false;$(id).required=true;});document.querySelector('.submit').textContent='Dokončit rezervaci';document.querySelector('.submit + .form-note').textContent='Vstupenky vám zašleme na uvedený e-mail.';}
   $('ticket-form').addEventListener('submit',async event=>{
     event.preventDefault();
     const seating=selectedType()==='450';
-    const payload={name:$('buyer-name').value.trim(),email:$('buyer-email').value.trim(),ticketType:seating?'Místenka ke stolu':'Základní vstupenka',count,totalPrice:count*Number(selectedType()),table:seating?$('selected-table').value:'',oddelenePdf:$('separate-pdf').checked};
+    const payload={name:config.reservationAdapter?$('buyer-name').value.trim():'Ukázka rezervace',email:config.reservationAdapter?$('buyer-email').value.trim():'Není potřeba',ticketType:seating?'Místenka ke stolu':'Základní vstupenka',count,totalPrice:count*Number(selectedType()),table:seating?$('selected-table').value:'',oddelenePdf:$('separate-pdf').checked};
     if(!payload.name){$('buyer-name').setCustomValidity('Vyplňte jméno a příjmení.');$('buyer-name').reportValidity();return;}
     if(config.reservationAdapter&&seating&&(!payload.table||Number(tables[payload.table])<count)){$('form-status').textContent='Vyberte stůl s dostatkem volných míst.';return;}
     const rows=[['Jméno',payload.name],['E-mail',payload.email],['Vstupenka',payload.ticketType],['Počet',payload.count],['Stůl',payload.table||(seating?'Bude vybrán při spuštění rezervací':'Bez místenky')],['PDF',payload.oddelenePdf?'Samostatné soubory':'Společný soubor'],['Celkem',money(payload.totalPrice)]];
@@ -235,6 +172,7 @@ window.PLES_CONFIG = {
     }catch(error){$('form-status').textContent='Chyba při rezervaci: '+error.message;}
     finally{submit.disabled=false;submit.textContent='Dokončit rezervaci';}
   });
+  document.querySelector('.submit').disabled=false;
   $('buyer-name').addEventListener('input',()=>$('buyer-name').setCustomValidity(''));
   updateTickets();
 })();
