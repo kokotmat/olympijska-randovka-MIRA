@@ -6,7 +6,7 @@ const jwk={...await crypto.subtle.exportKey('jwk',publicKey),kid:'test-key',alg:
 const env={ACCESS_ISSUER:issuer,ACCESS_AUD:'aud-test',ADMIN_ROLES:JSON.stringify({'admin@example.test':'admin','reader@example.test':'viewer'})};
 const b64=v=>Buffer.from(typeof v==='string'?v:JSON.stringify(v)).toString('base64url');
 async function token(extra={},header={}){const data=b64({alg:'RS256',kid:'test-key',...header})+'.'+b64({iss:issuer,aud:['aud-test'],email:'admin@example.test',iat:Date.now()/1000-5,exp:Date.now()/1000+600,...extra});return data+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',privateKey,new TextEncoder().encode(data))).toString('base64url');}
-const certs=async url=>{assert.equal(url,issuer+'/cdn-cgi/access/certs');return Response.json({keys:[jwk]});};
+const certs=async(url,options)=>{assert.equal(url,issuer+'/cdn-cgi/access/certs');assert.equal(options.redirect,'manual');return Response.json({keys:[jwk]});};
 const req=jwt=>new Request('https://sprava.example.test/api/admin/session',{headers:{'Cf-Access-Jwt-Assertion':jwt}});
 let count=0;
 async function test(name,fn){await fn();count++;console.log('PASS',name);}
