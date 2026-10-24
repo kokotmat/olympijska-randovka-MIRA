@@ -50,9 +50,9 @@ function fixture(){
   for(const name of ['Sheet1','Test_rezervace_PRO'])sheets.set(name,new Sheet([[...R.headers]]));
   const ledger=new Sheet([['ID','Date','VS','cents','currency']]);sheets.set('_Platby_live',ledger);
   const payload=(extra={})=>({name:'Tester',email:'tester@example.test',count:1,ticketType:R.seated,table:'Sál - Stůl 1',requestId:crypto.randomUUID(),...extra});
-  const login=(pin=properties.SCANNER_PIN,client='a'.repeat(64))=>{
-    const data={pin,gateway:{ts:Date.now(),nonce:crypto.randomUUID(),client}};
-    data.gateway.signature=crypto.createHmac('sha256',properties.SCANNER_GATEWAY_SECRET).update(['scanner-login-v1',data.gateway.ts,data.gateway.nonce,client,crypto.createHash('sha256').update(pin).digest('hex')].join('\n')).digest('hex');
+  const login=(pin=properties.SCANNER_PIN,client='a'.repeat(64),network='c'.repeat(64))=>{
+    const data={pin,gateway:{v:2,ts:Date.now(),nonce:crypto.randomUUID(),client,network}};
+    data.gateway.signature=crypto.createHmac('sha256',properties.SCANNER_GATEWAY_SECRET).update(['scanner-login-v2',data.gateway.ts,data.gateway.nonce,client,network,crypto.createHash('sha256').update(pin).digest('hex')].join('\n')).digest('hex');
     return ctx.scannerLogin(data);
   };
   const sheet=()=>sheets.get(properties.RUN_MODE==='live'?'Sheet1':'Test_rezervace_PRO');
@@ -97,11 +97,11 @@ test('quota exhaustion preserves queue and undelivered reservation',()=>{
   f.ctx.sendOutbox_();f.ctx.expire_(f.sheet(),f.ctx.rows_(f.sheet()),f.ctx.cfg_());assert.equal(f.sheet().rows[1][16],'ČEKÁ');assert.equal(f.sheet().rows[1][7],f.R.waiting);
   const h=f.ctx.operationsHealth();assert.equal(h.queuedEmails,1);assert.equal(h.remainingRecipients,0);
 });
-test('one client lockout leaves another client login available; unsigned and modified proofs fail',()=>{
+test('one device lockout leaves another on the SAME network available; unsigned and modified proofs fail',()=>{
   const f=fixture();for(let i=0;i<10;i++)assert.equal(f.login('wrong').status,'error');
   assert.equal(f.login().status,'error');assert.equal(f.login(undefined,'b'.repeat(64)).status,'success');
   assert.equal(f.ctx.scannerLogin({pin:f.properties.SCANNER_PIN}).status,'error');
-  const data={pin:f.properties.SCANNER_PIN,gateway:{ts:Date.now(),nonce:crypto.randomUUID(),client:'b'.repeat(64),signature:'f'.repeat(64)}};
+  const data={pin:f.properties.SCANNER_PIN,gateway:{v:2,ts:Date.now(),nonce:crypto.randomUUID(),client:'b'.repeat(64),network:'c'.repeat(64),signature:'f'.repeat(64)}};
   assert.equal(f.ctx.scannerLogin(data).status,'error');data.gateway.ts-=300000;assert.equal(f.ctx.scannerLogin(data).status,'error');
 });
 test('multiple readers admit each QR once, and no green before flush confirmation',()=>{

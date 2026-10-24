@@ -235,6 +235,7 @@ function doPost(e) {
   try {
     if(!e||!e.postData||e.postData.contents.length>10000)throw new Error('Neplatný požadavek.');
     const data=JSON.parse(e.postData.contents);
+    if(data.action==='adminBridge')return json_(adminBridge_(data));
     if(data.action==='scannerLogin')return json_(scannerLogin(data));
     if(data.action==='scan')return json_(scannerScan(data));
     return json_(reserve_(data));
@@ -477,19 +478,19 @@ function sign_(s,c) { return Utilities.base64EncodeWebSafe(Utilities.computeHmac
 function scannerClient_(data) {
   const secret=props_().getProperty('SCANNER_GATEWAY_SECRET')||'',g=data&&data.gateway;
   if(secret.length<32)throw new Error('Přihlášení není nakonfigurováno. Kontaktujte správce.');
-  if(!g||!Number.isFinite(g.ts)||Math.abs(Date.now()-g.ts)>120000||
-    !/^[a-f0-9-]{36}$/.test(String(g.nonce))||!/^\w{64}$/.test(String(g.client))||!/^\w{64}$/.test(String(g.signature)))throw new Error('Přihlaste se přes skener na olympijskarandovka.cz.');
-  const text=['scanner-login-v1',g.ts,g.nonce,g.client,digest_(String(data.pin))].join('\n');
+  if(!g||g.v!==2||!Number.isFinite(g.ts)||Math.abs(Date.now()-g.ts)>120000||
+    !/^[a-f0-9-]{36}$/.test(String(g.nonce))||!/^\w{64}$/.test(String(g.client))||!/^\w{64}$/.test(String(g.network))||!/^\w{64}$/.test(String(g.signature)))throw new Error('Přihlaste se přes skener na olympijskarandovka.cz.');
+  const text=['scanner-login-v2',g.ts,g.nonce,g.client,g.network,digest_(String(data.pin))].join('\n');
   const expected=Utilities.computeHmacSha256Signature(text,secret).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
   if(!sameSecret_(g.signature,expected))throw new Error('Neplatný požadavek přihlášení.');
-  return g.client;
+  return {client:g.client,network:g.network};
 }
 function scannerLogin(data) {
   try {
     const c=cfg_();validateConfig_(c,c.mode==='live');
     const client=scannerClient_(data);
     return withLock_(()=>{
-      const p=props_(),now=Date.now(),key='SCANNER_FAIL:'+client;
+      const p=props_(),now=Date.now(),key='SCANNER_FAIL:'+client.client,networkKey='SCANNER_FAIL:NET:'+client.network;
       // Persistent state cannot disappear on CacheService eviction. Keep one
       // small record per edge-verified address; expired records are pruned.
       const all=p.getProperties();Object.keys(all).filter(k=>k.startsWith('SCANNER_FAIL:')).forEach(k=>{
@@ -497,8 +498,11 @@ function scannerLogin(data) {
       });
       let state={count:0,until:now+300000};try{state=JSON.parse(p.getProperty(key))||state;}catch(_){}
       if(state.until<=now)state={count:0,until:now+300000};
-      if(state.count>=10)throw new Error('Příliš mnoho chybných pokusů z této sítě. Počkejte 5 minut.');
-      if(!sameSecret_(data.pin,c.pin)){state.count++;p.setProperty(key,JSON.stringify(state));throw new Error('Nesprávný PIN.');}
+      let network={count:0,until:now+300000};try{network=JSON.parse(p.getProperty(networkKey))||network;}catch(_){}
+      if(network.until<=now)network={count:0,until:now+300000};
+      if(state.count>=10)throw new Error('Příliš mnoho chybných pokusů na tomto zařízení. Počkejte 5 minut.');
+      if(network.count>=100)throw new Error('Síť překročila ochranný limit. Počkejte 5 minut nebo použijte jinou síť.');
+      if(!sameSecret_(data.pin,c.pin)){state.count++;network.count++;p.setProperty(key,JSON.stringify(state));p.setProperty(networkKey,JSON.stringify(network));throw new Error('Nesprávný PIN.');}
       p.deleteProperty(key);
       const payload=Utilities.base64EncodeWebSafe(JSON.stringify({exp:Date.now()+6*3600000,mode:c.mode,nonce:Utilities.getUuid()})).replace(/=+$/,'');
       return {status:'success',session:payload+'.'+sign_(payload,c),mode:c.mode,expiresAt:Date.now()+6*3600000};

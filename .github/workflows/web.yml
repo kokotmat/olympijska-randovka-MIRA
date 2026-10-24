@@ -21,3 +21,7 @@ jobs:
       - run: node tests/table-availability.mjs
       - run: node tests/table-client.mjs
       - run: node tests/scanner-client.mjs
+      - run: node tests/admin-security.mjs
+      - run: node tests/admin-bridge.mjs
+      - run: node tests/admin-api.mjs
+      - run: node tests/outreach-admin.mjs

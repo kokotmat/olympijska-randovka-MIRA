@@ -17,21 +17,21 @@ export async function onRequest({request,env={}}) {
     data=JSON.parse(new TextDecoder().decode(bytes));
   }catch(_){return failure('Neplatný požadavek.',400);}
   let payload;
-  if(data?.action==='scannerLogin'&&typeof data.pin==='string'&&data.pin.length<=128)payload={action:'scannerLogin',pin:data.pin};
+  if(data?.action==='scannerLogin'&&typeof data.pin==='string'&&data.pin.length<=128&&typeof data.deviceId==='string'&&/^[a-f0-9-]{36}$/i.test(data.deviceId))payload={action:'scannerLogin',pin:data.pin};
   else if(data?.action==='scan'&&typeof data.hash==='string'&&/^[a-z0-9-]{20,100}$/i.test(data.hash)&&typeof data.session==='string'&&data.session.length<=1000)payload={action:'scan',hash:data.hash,session:data.session};
   else return failure('Neplatná operace skeneru.',400);
-  // During migration the deployed backend still accepts legacy login. The new
-  // backend requires this proof and rejects unsigned direct login requests.
-  if(payload.action==='scannerLogin'&&env.SCANNER_GATEWAY_SECRET){
-    const secret=env.SCANNER_GATEWAY_SECRET,ip=request.headers.get('CF-Connecting-IP');
+  // A device lockout is separate from a higher network abuse budget. Raw IPs
+  // and device identifiers never reach Google or logs.
+  if(payload.action==='scannerLogin'){
+    const secret=env.SCANNER_GATEWAY_SECRET||'',ip=request.headers.get('CF-Connecting-IP');
     if(secret.length<32||!ip)return failure('Přihlášení skeneru není správně nakonfigurováno.',503);
     const enc=new TextEncoder(),hex=bytes=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
     const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
     const hmac=async value=>hex(await crypto.subtle.sign('HMAC',key,enc.encode(value)));
-    const client=await hmac('scanner-client-v1\n'+ip),ts=Date.now(),nonce=crypto.randomUUID();
+    const client=await hmac('scanner-client-v2\n'+ip+'\n'+data.deviceId),network=await hmac('scanner-network-v2\n'+ip),ts=Date.now(),nonce=crypto.randomUUID();
     const pinHash=hex(await crypto.subtle.digest('SHA-256',enc.encode(payload.pin)));
-    const signature=await hmac(['scanner-login-v1',ts,nonce,client,pinHash].join('\n'));
-    payload.gateway={ts,nonce,client,signature};
+    const signature=await hmac(['scanner-login-v2',ts,nonce,client,network,pinHash].join('\n'));
+    payload.gateway={v:2,ts,nonce,client,network,signature};
   }
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),23000);
   try {
