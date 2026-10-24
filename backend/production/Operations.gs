@@ -29,7 +29,8 @@ function operationsHealth_(){
     bankError:/^BANK_[A-Z0-9_]+$/.test(p.BANK_ERROR||'')?p.BANK_ERROR:null,
     maintenanceTrigger,maintenanceAgeSeconds:age(p.MAINTENANCE_LAST_OK),maintenanceLastOk:Number(p.MAINTENANCE_LAST_OK)||null,
     maintenanceError:p.MAINTENANCE_ERROR==='MAINTENANCE_FAILED'?'MAINTENANCE_FAILED':null,
-    lastIncidentAt:Number(p.MAINTENANCE_LAST_ERROR_AT)||null};
+    lastIncidentAt:Number(p.MAINTENANCE_LAST_ERROR_AT)||null,
+    controlsVersion:digest_(JSON.stringify([c.mode,c.open,c.gate]))};
 }
 function setupOperationsDashboard(){
   owner_();

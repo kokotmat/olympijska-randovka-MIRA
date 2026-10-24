@@ -10128,6 +10128,8 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 const $=id=>document.getElementById(id);
 let session=null,busy=false,stream=null,detector=null,loop=0,epoch=0,seen='',absentSince=0,lastHash='',audio=null,wake=null;
 const history=[];
+let deviceIdentity='';
+function scannerDeviceIdentity(){if(deviceIdentity)return deviceIdentity;try{const saved=localStorage.getItem('randovka-scanner-device');if(/^[a-f0-9-]{36}$/i.test(saved||''))return deviceIdentity=saved;}catch(_){}deviceIdentity=crypto.randomUUID();try{localStorage.setItem('randovka-scanner-device',deviceIdentity);}catch(_){}return deviceIdentity;}
 async function rpc(method,data){let timer,controller;try{return await Promise.race([new Promise((resolve,reject)=>{
  if(!window.google||!google.script||!google.script.run){
   const endpoint=document.querySelector('meta[name="randovka-backend"]').content;
@@ -10136,7 +10138,7 @@ async function rpc(method,data){let timer,controller;try{return await Promise.ra
   const gateway=document.querySelector('meta[name="randovka-api"]')?.content;
   if(gateway&&gateway!=='/api/scanner'){reject(new Error('Neplatná adresa brány skeneru.'));return;}
   fetch(gateway||endpoint,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'follow',signal:controller.signal,headers:{'Content-Type':'text/plain;charset=UTF-8'},
-   body:JSON.stringify({...data,action:method==='login'?'scannerLogin':'scan'})})
+   body:JSON.stringify({...data,...(method==='login'?{deviceId:scannerDeviceIdentity()}:{}),action:method==='login'?'scannerLogin':'scan'})})
    .then(async response=>{let body;try{body=await response.json();}catch(_){throw new Error('Server vrátil nečitelnou odpověď. Výsledek kontroly je nejasný.');}if(!response.ok)throw new Error(body.message||'Server není dostupný. Výsledek kontroly je nejasný.');return body;}).then(resolve).catch(error=>reject(new Error(error.name==='AbortError'?'Server včas neodpověděl. Výsledek kontroly je nejasný.':error.message==='Failed to fetch'?'Spojení se serverem selhalo. Zkontrolujte internet; výsledek kontroly může být nejasný.':error.message)));return;
  }
  const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(()=>reject(new Error('Server neodpověděl. Ověřte připojení a zopakujte kontrolu.')));
