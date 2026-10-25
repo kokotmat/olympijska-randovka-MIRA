@@ -40,7 +40,7 @@ def sqlite_snapshot(path):
 def post(op, args, secret):
     body = json.dumps(envelope(op, args, secret), ensure_ascii=False, separators=(",", ":")).encode()
     request = urllib.request.Request("https://olympijskarandovka.cz/api/ops", data=body,
-                                     headers={"Content-Type": "application/json"}, method="POST")
+                                     headers={"Content-Type": "application/json", "User-Agent": "RandovkaOperations/1.0"}, method="POST")
     # urllib normally follows redirects. An operations request must never move its signed body.
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):

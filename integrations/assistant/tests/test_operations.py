@@ -6,12 +6,26 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
-from app.operations import envelope, sqlite_snapshot, synchronize
+from app.operations import envelope, sqlite_snapshot, synchronize, post
 from app.store import Store
 
 
 class OperationsTests(unittest.TestCase):
+    def test_service_identifies_itself_without_changing_signed_protocol(self):
+        class Response:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def read(self, limit): return b'{"status":"success","data":{"recorded":true}}'
+        with patch('app.operations.urllib.request.build_opener') as opener:
+            opener.return_value.open.return_value = Response()
+            self.assertEqual(post('report', {'state': 'ok', 'issues': []}, 'offline-key'*4), {'recorded': True})
+            request = opener.return_value.open.call_args.args[0]
+            self.assertEqual(request.get_header('User-agent'), 'RandovkaOperations/1.0')
+            self.assertEqual(json.loads(request.data)['source'], 'assistant')
+
     def test_snapshot_restores_committed_wal_and_drops_oauth_sessions(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "live.sqlite3"
