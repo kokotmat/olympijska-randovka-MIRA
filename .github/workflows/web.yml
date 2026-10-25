@@ -28,3 +28,10 @@ jobs:
       - run: node tests/delivery.mjs
       - run: node tests/outreach-delivery.mjs
       - run: node tests/web-operations.mjs
+      - run: node tests/morning-operations.mjs
+      - run: node tests/operations-source.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest tests.test_operations -v
+        working-directory: integrations/assistant

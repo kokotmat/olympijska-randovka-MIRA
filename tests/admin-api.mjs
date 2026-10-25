@@ -6,6 +6,7 @@ const actor='admin@example.test',origin='https://sprava.example.test';
 function fixture(){
  const db=new DatabaseSync(':memory:');db.exec(fs.readFileSync(new URL('../admin/migrations/0001_commands.sql',import.meta.url),'utf8'));
  db.exec(fs.readFileSync(new URL('../admin/migrations/0004_web_operations.sql',import.meta.url),'utf8'));
+ db.exec(fs.readFileSync(new URL('../admin/migrations/0005_operations.sql',import.meta.url),'utf8'));
  const env={RESERVATIONS_ADMIN_URL:'https://script.google.com/macros/s/test/exec',RESERVATIONS_ADMIN_SECRET:'offline-test-secret-'.repeat(3),ADMIN_DB:{prepare(sql){let values=[];return {bind(...v){values=v;return this;},async first(){return db.prepare(sql).get(...values)||null;},async all(){return {results:db.prepare(sql).all(...values)};},async run(){db.prepare(sql).run(...values);return {success:true};}};}}};
  return {env,db,async call(path,body,headers={},role='admin'){
   const request=new Request(origin+'/api/admin/'+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','Origin':origin,'X-Requested-By':'randovka-admin',...headers},...(body?{body:JSON.stringify(body)}:{})});
