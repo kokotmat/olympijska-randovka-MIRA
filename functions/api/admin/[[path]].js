@@ -1,10 +1,12 @@
 import {AdminError,json,errorResponse,permit} from '../../../lib/admin/access.js';
 import {bridge,componentState} from '../../../lib/admin/bridge.js';
-const WRITES={reservations:new Set(['cancelOrder','retryMail','closeSales','closeGate']),sponsors:new Set(['pauseCampaign','updateSponsor']),assistant:new Set(['pauseAi','resumeAi','retryJob'])};
-const READS={reservations:new Set(['orders','order','history']),sponsors:new Set(['sponsors','sponsor','history']),assistant:new Set(['jobs','usage','history'])};
+import {operations,deliverySettings} from '../../../lib/admin/operations.js';
+const WRITES={reservations:new Set(['cancelOrder','retryMail','closeSales','closeGate']),sponsors:new Set(['pauseCampaign','updateSponsor','configureCampaign','resumeCampaign']),assistant:new Set(['pauseAi','resumeAi','retryJob'])};
+const READS={reservations:new Set(['orders','order','history']),sponsors:new Set(['campaign','sponsors','sponsor','history']),assistant:new Set(['jobs','usage','history'])};
 export async function onRequest({request,env,data}){
   try{
     const user=data.identity,url=new URL(request.url),path=url.pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
+    if(path[0]==='delivery'&&['settings','resolve'].includes(path[1])||path[0]==='web'&&['partners','draft','publish','withdraw','preview'].includes(path[1]))return await operations({request,env,data},path);
     if(request.method==='GET'&&path[0]==='session')return json({status:'success',data:{user,release:'central-admin-v1',components:{reservations:!!env.RESERVATIONS_ADMIN_URL,sponsors:!!env.SPONSORS_ADMIN_URL,assistant:!!env.ASSISTANT_ADMIN_URL}}});
     if(request.method==='GET'&&path[0]==='overview'){
       const components=await Promise.all(['reservations','sponsors','assistant'].map(name=>componentState(env,name,user.email)));
@@ -21,12 +23,13 @@ export async function onRequest({request,env,data}){
         const lastAccepted=await env.ADMIN_DB.prepare('SELECT accepted_at,mode FROM delivery_jobs WHERE source IN ('+placeholders+') AND accepted_at IS NOT NULL ORDER BY accepted_at DESC LIMIT 1').bind(...sources).first();
         const lastWebhook=await env.ADMIN_DB.prepare('SELECT e.received_at,e.event,j.mode FROM delivery_events e JOIN delivery_jobs j ON j.id=e.job_id WHERE j.source IN ('+placeholders+') ORDER BY e.received_at DESC LIMIT 1').bind(...sources).first();
         const checkedAt=Date.now(),oldestQueuedAt=states.results.find(x=>x.state==='queued')?.oldest??null;
-        return json({status:'success',data:{states:states.results,items:items.results,health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:['test','live'].includes(env.DELIVERY_SENDING_ENABLED)?env.DELIVERY_SENDING_ENABLED:'disabled',providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:'Přehled zahrnuje pouze tuto frontu; nejde o celkovou zbývající kvótu účtu SMTP2GO.'}});
+        const settings=await deliverySettings(env);for(const r of items.results)if(r.state==='uncertain'){const full=await env.ADMIN_DB.prepare('SELECT provider_id,event_at FROM delivery_jobs WHERE id=?').bind(r.id).first();r.version=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([r.id,r.state,full.provider_id,full.event_at])))),x=>x.toString(16).padStart(2,'0')).join('');}
+        return json({status:'success',data:{states:states.results,items:items.results,settings,health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:settings.mode,providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:'Denní strop této fronty není celková zbývající kvóta účtu SMTP2GO. Počítá se podle UTC; zahrnuje i nejisté pokusy.'}});
       }catch{throw new AdminError('DELIVERY_NOT_CONFIGURED',503);}
     }
     if(request.method==='GET'&&path[0]==='history'){
       permit(user,'history');if(!env.ADMIN_DB)throw new AdminError('AUDIT_STORE_NOT_CONFIGURED',503);
-      const rows=await env.ADMIN_DB.prepare('SELECT id,actor,component,operation,state,created_at,finished_at FROM commands ORDER BY created_at DESC LIMIT 100').all();
+      const rows=await env.ADMIN_DB.prepare("SELECT id,actor,component,operation,state,created_at,finished_at FROM commands UNION ALL SELECT id,actor,CASE WHEN operation LIKE 'web/%' THEN 'sponsors' ELSE 'delivery' END,operation,'done',created_at,created_at FROM admin_actions ORDER BY created_at DESC LIMIT 100").all();
       return json({status:'success',data:{items:rows.results,checkedAt:Date.now()}});
     }
     if(request.method==='GET'&&path[0]==='commands'&&/^[a-f0-9-]{36}$/i.test(path[1]||'')){

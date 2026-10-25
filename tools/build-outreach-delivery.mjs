@@ -22,6 +22,8 @@ export function buildOutreachDelivery(input){
  replace("communicationStatus:get('reply_status')||get('automation_status')||get('send_status'),", "communicationStatus:get('reply_status')||get('automation_status')||get('send_status'),mailDeliveryStatus:get('central_delivery_status'),mailDeliveryCheckedAt:r[map.central_delivery_checked_at] instanceof Date?r[map.central_delivery_checked_at].getTime():null,");
  replace("SpreadsheetApp.flush();result={status:'success',data:{paused:true}};", "SpreadsheetApp.flush();if(typeof rdOutreachUsesCentral_==='function'&&rdOutreachUsesCentral_())rdDeliveryTick_('sponsors',false,rdOutreachWindow_(settings));result={status:'success',data:{paused:true}};");
  source+='\n\n'+fs.readFileSync(path.join(root,'integrations/delivery/Client.gs'),'utf8')+'\n'+fs.readFileSync(path.join(root,'integrations/outreach/Delivery.gs'),'utf8');
+ const start=source.indexOf('/** Private sponsorship bridge.'),end=source.indexOf('/* Shared Apps Script transport.',start);
+ if(start>=0&&end>start)source=source.slice(0,start)+fs.readFileSync(path.join(root,'integrations/outreach/AdminBridge.gs'),'utf8')+'\n\n'+source.slice(end);
  new vm.Script(source);return source;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
