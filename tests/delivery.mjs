@@ -20,6 +20,19 @@ await test('invalid webhook fields report bounded codes without recording data',
  for(const [change,code] of [[{event:'unknown'},'INVALID_EVENT_TYPE'],[{id:''},'INVALID_EVENT_ID'],[{email_id:null},'INVALID_EVENT_EMAIL_ID'],[{rcpt:null},'INVALID_EVENT_RECIPIENT'],[{time:'invalid'},'INVALID_EVENT_TIME']])await assert.rejects(receiveEvent(f.store,{...e,...change}),x=>x.code===code);
  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM delivery_events').get().n,0);f.sqlite.close();
 });
+await test('processed recipients lists correlate to the stored recipient without confirming delivery',async()=>{
+ const f=fixture(),job=await f.store.enqueue('reservations',message('processed-list'));
+ f.sqlite.prepare("UPDATE delivery_jobs SET state='accepted',provider_id='list-provider' WHERE id=?").run(job.id);
+ const e={event:'processed',id:'processed-list-webhook',email_id:'list-provider',recipients:['other@example.test','PERSON@example.test'],time:new Date().toISOString()};
+ assert.deepEqual(await receiveEvent(f.store,e),{recorded:true});let row=await f.store.get('reservations','processed-list');assert.equal(row.state,'processed');assert.equal(row.delivered_at,null);
+ assert.deepEqual(await receiveEvent(f.store,{...e,rcpt:'person@example.test',recipients:undefined}),{duplicate:true});
+ await assert.rejects(receiveEvent(f.store,{...e,id:'wrong',recipients:['other@example.test']}),x=>x.code==='EVENT_MISMATCH');
+ await assert.rejects(receiveEvent(f.store,{...e,id:'wrong-provider',email_id:'other-provider','X-Randovka-Message-ID':job.id}),x=>x.code==='EVENT_MISMATCH');
+ await assert.rejects(receiveEvent(f.store,{...e,event:'delivered'}),x=>x.code==='INVALID_EVENT_RECIPIENT');
+ for(const recipients of [[],['not-email'],[{}],Array(51).fill('person@example.test')])await assert.rejects(receiveEvent(f.store,{...e,recipients}),x=>x.code==='INVALID_EVENT_RECIPIENT');
+ assert.deepEqual(await receiveEvent(f.store,{...e,id:'string-list',recipients:'other@example.test, person@example.test'}),{recorded:true});
+ assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM delivery_events').get().n,2);f.sqlite.close();
+});
 await test('signed source cannot be swapped and replayed nonce is rejected',async()=>{
  const f=fixture(),e={source:'reservations',op:'status',args:{sourceId:'x'},ts:Date.now(),nonce:crypto.randomUUID()};e.signature=await deliverySignature(e,f.env.RESERVATIONS_ADMIN_SECRET);await verifyDelivery(e,f.env);await assert.rejects(verifyDelivery({...e,source:'sponsors'},f.env),x=>x.code==='AUTH');await f.store.nonce(e,Date.now());await assert.rejects(f.store.nonce(e,Date.now()),x=>x.code==='REPLAY');f.sqlite.close();
 });
