@@ -18,6 +18,8 @@ function outreachAdminVerify_(d){
   const x=outreachAdminHash_(String(d.signature)),y=outreachAdminHash_(expected);let diff=0;for(let i=0;i<x.length;i++)diff|=x.charCodeAt(i)^y.charCodeAt(i);if(diff)throw Error('AUTH');
 }
 function outreachAdminSettings_(){const s=outreachAdminBook_().getSheetByName('SETTINGS');if(!s)throw Error('BRIDGE_SCHEMA');return Object.fromEntries(s.getDataRange().getValues().slice(1).filter(r=>r[0]).map(r=>[String(r[0]),String(r[1])]));}
+function outreachAdminControlVersion_(s){return outreachAdminHash_(['CAMPAIGN_ENABLED','V16_QUEUE_RUNNING','MODE','DAILY_SEND_LIMIT','SEND_WEEKDAYS','SEND_START_HOUR','SEND_END_HOUR','MAX_FOLLOWUPS'].map(k=>s[k]||''));}
+function outreachAdminControl_(s){return {enabled:s.CAMPAIGN_ENABLED==='TRUE'&&s.V16_QUEUE_RUNNING==='TRUE',mode:s.MODE,dailyLimit:Number(s.DAILY_SEND_LIMIT),weekdays:s.SEND_WEEKDAYS,startHour:Number(s.SEND_START_HOUR),endHour:Number(s.SEND_END_HOUR),maxFollowups:Number(s.MAX_FOLLOWUPS),version:outreachAdminControlVersion_(s)};}
 function outreachAdminSponsor_(r,map){const get=k=>String(r[map[k]]||'');return {id:get('campaign_id'),name:get('organization_name')||get('brand_name')||get('legal_entity'),email:get('email_primary'),
   communicationStatus:get('reply_status')||get('automation_status')||get('send_status'),mailDeliveryStatus:get('central_delivery_status'),mailDeliveryCheckedAt:r[map.central_delivery_checked_at] instanceof Date?r[map.central_delivery_checked_at].getTime():null,giftStatus:get(OUTREACH_ADMIN_FIELDS.giftStatus)||'Neověřeno',contractStatus:get(OUTREACH_ADMIN_FIELDS.contractStatus)||'Neověřeno',logoStatus:get(OUTREACH_ADMIN_FIELDS.logoStatus)||'Neověřeno',note:get(OUTREACH_ADMIN_FIELDS.note),...Object.fromEntries(['giftDescription','receivedDescription','deliveryStatus','contractReference','promotion'].map(k=>[k,get(OUTREACH_ADMIN_FIELDS[k])])),version:outreachAdminHash_(r)};}
 function setupOutreachAdmin(){
@@ -38,9 +40,10 @@ function doPost(e){
 }
 function outreachAdmin_(d){
   let lock;try{
-    outreachAdminVerify_(d);if(!['health','sponsors','sponsor','history','commandStatus','pauseCampaign','updateSponsor'].includes(d.op))throw Error('REJECTED');
+    outreachAdminVerify_(d);if(!['health','campaign','configureCampaign','resumeCampaign','sponsors','sponsor','history','commandStatus','pauseCampaign','updateSponsor'].includes(d.op))throw Error('REJECTED');
     lock=LockService.getScriptLock();if(!lock.tryLock(5000))throw Error('BUSY');
     const settings=outreachAdminSettings_(),p=PropertiesService.getScriptProperties(),data=outreachAdminRows_();
+    if(d.op==='campaign')return {status:'success',data:outreachAdminControl_(settings)};
     if(d.op==='health')return {status:'success',data:{release:'central-admin-v1',checkedAt:Date.now(),provider:typeof rdOutreachUsesCentral_==='function'&&rdOutreachUsesCentral_()?'CENTRAL_SMTP2GO':settings.SENDER_PROVIDER||'Neověřeno',queueRunning:settings.V16_QUEUE_RUNNING==='TRUE',state:p.getProperty('V200_STATE')||'Neověřeno',remainingRecipients:MailApp.getRemainingDailyQuota(),lastHeartbeat:p.getProperty('V200_HEARTBEAT'),version:outreachAdminHash_([settings.CAMPAIGN_ENABLED,settings.V16_QUEUE_RUNNING])}};
     if(d.op==='sponsors'){
       const q=String(d.args.q||'').slice(0,120).toLowerCase(),offset=Math.max(0,parseInt(d.args.cursor||'0',10)||0);
@@ -55,7 +58,23 @@ function outreachAdmin_(d){
     const prior=all.find(r=>r[0]===d.commandId);if(prior){if(prior[1]!==fingerprint)throw Error('COMMAND_CONFLICT');if(prior[4]==='done'||prior[4]==='rejected')return JSON.parse(prior[5]);throw Error('COMMAND_UNCERTAIN');}
     ledger.appendRow([d.commandId,fingerprint,d.actor,d.op,'pending','',new Date(),'']);SpreadsheetApp.flush();const index=ledger.getLastRow();let result;
     try{
-      if(d.op==='pauseCampaign'){
+      if(['configureCampaign','resumeCampaign'].includes(d.op)){
+        if(outreachAdminControlVersion_(settings)!==d.expectedVersion)throw Error('CONFLICT');
+        if(typeof rdOutreachUsesCentral_!=='function'||!rdOutreachUsesCentral_())throw Error('REJECTED');
+        let fields;
+        if(d.op==='configureCampaign'){
+          const a=d.args;if(settings.CAMPAIGN_ENABLED==='TRUE'||settings.V16_QUEUE_RUNNING==='TRUE'||!['PILOT','LIVE'].includes(a.mode)||!Number.isInteger(a.dailyLimit)||a.dailyLimit<1||a.dailyLimit>200||!Array.isArray(a.days)||!a.days.length||a.days.length>7||a.days.some(x=>!Number.isInteger(x)||x<1||x>7)||!Number.isInteger(a.startHour)||!Number.isInteger(a.endHour)||a.startHour<0||a.endHour>24||a.startHour>=a.endHour||!Number.isInteger(a.maxFollowups)||a.maxFollowups<0||a.maxFollowups>3)throw Error('REJECTED');
+          fields={MODE:a.mode,DAILY_SEND_LIMIT:String(a.dailyLimit),SEND_WEEKDAYS:[...new Set(a.days)].sort().map(x=>['MON','TUE','WED','THU','FRI','SAT','SUN'][x-1]).join(','),SEND_START_HOUR:String(a.startHour),SEND_END_HOUR:String(a.endHour),MAX_FOLLOWUPS:String(a.maxFollowups)};
+        }else{
+          if(d.args.confirmation!=='SPUSTIT KAMPAŇ'||!['LIVE','PILOT'].includes(settings.MODE)||p.getProperty('V201_DMARC_STATE')!=='OK')throw Error('REJECTED');
+          const handlers=ScriptApp.getProjectTriggers().map(t=>t.getHandlerFunction());if(!handlers.includes('v16QueueTick'))throw Error('REJECTED');
+          rdOutreachWindow_(settings);fields={CAMPAIGN_ENABLED:'TRUE',V16_QUEUE_RUNNING:'TRUE'};
+        }
+        const sheet=outreachAdminBook_().getSheetByName('SETTINGS'),rows=sheet.getDataRange().getValues();
+        if(Object.keys(fields).some(k=>rows.findIndex(r=>r[0]===k)<1))throw Error('REJECTED');
+        for(const [key,value]of Object.entries(fields))sheet.getRange(rows.findIndex(r=>r[0]===key)+1,2).setValue(value);
+        SpreadsheetApp.flush();result={status:'success',data:outreachAdminControl_({...settings,...fields})};
+      }else if(d.op==='pauseCampaign'){
         if(outreachAdminHash_([settings.CAMPAIGN_ENABLED,settings.V16_QUEUE_RUNNING])!==d.expectedVersion)throw Error('CONFLICT');
         const s=outreachAdminBook_().getSheetByName('SETTINGS'),values=s.getDataRange().getValues();
         for(const key of ['CAMPAIGN_ENABLED','V16_QUEUE_RUNNING']){const i=values.findIndex(r=>r[0]===key);if(i<1)throw Error('BRIDGE_SCHEMA');s.getRange(i+1,2).setValue('FALSE');}
