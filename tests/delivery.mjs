@@ -60,6 +60,7 @@ await test('signed HTTP enqueue stores one job and never invokes sending',async(
 await test('unsubscribe blocks both future admission and already queued messages',async()=>{
  const f=fixture();await f.store.control('reservations',{enabled:true});const first=await f.store.enqueue('reservations',message('optout-first'));await processQueue(f.env,async()=>accept());await f.store.enqueue('reservations',message('optout-pending'));
  await receiveEvent(f.store,{id:'optout',event:'unsubscribe',email_id:'offline-provider-id',rcpt:'person@example.test',time:new Date().toISOString(),'X-Randovka-Message-ID':first.id});
+ assert.deepEqual(await receiveEvent(f.store,{event:'resubscribe'}),{ignored:true,reason:'MANUAL_REVIEW_REQUIRED'});
  await assert.rejects(f.store.enqueue('reservations',message('optout-next')),e=>e.code==='RECIPIENT_SUPPRESSED');await processQueue(f.env,async()=>{throw Error('suppressed must not send');});assert.equal((await f.store.get('reservations','optout-pending')).state,'suppressed');f.sqlite.close();
 });
 await test('unsigned webhook is denied before any database operation',async()=>{
