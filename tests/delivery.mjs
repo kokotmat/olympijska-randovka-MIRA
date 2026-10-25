@@ -88,5 +88,15 @@ await test('component roles see only their own deliveries and no message bodies'
  const f=fixture();await f.store.enqueue('reservations',message('private-reservation'));await f.store.enqueue('sponsors',message('private-sponsor',{kind:'initial',permission:'CONSENTED',to:'sponsor@example.test'}));
  for(const role of ['sponsors','reservations']){const r=await adminRequest({request:new Request('https://example.test/api/admin/delivery/overview'),env:f.env,data:{identity:{email:'offline@example.test',role}}});const j=await r.json();assert.equal(r.status,200);assert.equal(j.data.items.length,1);assert.equal(j.data.items[0].source,role);assert(!JSON.stringify(j).includes('No real email'));}f.sqlite.close();
 });
+await test('delivery health distinguishes test receipts and isolates component metrics',async()=>{
+ const f=fixture(),now=Date.now(),pending=await f.store.enqueue('reservations',message('health-pending'),now-120000);
+ const sent=await f.store.enqueue('sponsors',message('health-sent',{mode:'test',kind:'initial',permission:'CONSENTED'}),now-60000);
+ f.sqlite.prepare("UPDATE delivery_jobs SET state='accepted',provider_id='health-provider',accepted_at=? WHERE id=?").run(now-30000,sent.id);
+ await receiveEvent(f.store,{id:'health-event',event:'delivered',email_id:'health-provider',rcpt:'person@example.test',time:new Date(now-10000).toISOString()},now-5000);
+ async function health(role){const r=await adminRequest({request:new Request('https://example.test/api/admin/delivery/overview'),env:f.env,data:{identity:{email:'offline@example.test',role}}});assert.equal(r.status,200);return (await r.json()).data.health;}
+ const reservations=await health('reservations');assert.equal(reservations.oldestQueuedAt,now-120000);assert(reservations.queueAgeMs>=120000);assert.equal(reservations.lastAccepted,null);assert.equal(reservations.lastWebhook,null);
+ const sponsors=await health('sponsors');assert.equal(sponsors.queueAgeMs,null);assert.equal(sponsors.lastAccepted.accepted_at,now-30000);assert.equal(sponsors.lastAccepted.mode,'test');assert.equal(sponsors.lastWebhook.event,'delivered');assert.equal(sponsors.lastWebhook.received_at,now-5000);assert.equal(sponsors.lastWebhook.mode,'test');
+ const admin=await health('admin');assert.equal(admin.oldestQueuedAt,reservations.oldestQueuedAt);assert.deepEqual(admin.lastWebhook,sponsors.lastWebhook);f.sqlite.close();
+});
 await test('a delayed old heartbeat cannot undo a newer pause',async()=>{const f=fixture(),n=Date.now();await f.store.control('reservations',{enabled:true},n-1000);await f.store.control('reservations',{enabled:false},n);await f.store.control('reservations',{enabled:true},n-500);await f.store.control('reservations',{enabled:true},n);const c=await f.db.prepare('SELECT * FROM delivery_controls WHERE source=?').bind('reservations').first();assert.equal(c.enabled,0);f.sqlite.close();});
 console.log(JSON.stringify({tests:count,network:'none',emails:'none',database:'isolated in-memory SQLite'}));

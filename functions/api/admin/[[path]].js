@@ -18,7 +18,10 @@ export async function onRequest({request,env,data}){
         const placeholders=sources.map(()=>'?').join(',');
         const states=await env.ADMIN_DB.prepare('SELECT state,COUNT(*) AS count,MIN(created_at) AS oldest FROM delivery_jobs WHERE source IN ('+placeholders+') GROUP BY state').bind(...sources).all();
         const items=await env.ADMIN_DB.prepare('SELECT id,source,source_id,mode,kind,recipient,subject,state,created_at,accepted_at,delivered_at,error_code FROM delivery_jobs WHERE source IN ('+placeholders+') ORDER BY created_at DESC LIMIT 50').bind(...sources).all();
-        return json({status:'success',data:{states:states.results,items:items.results,sendingMode:['test','live'].includes(env.DELIVERY_SENDING_ENABLED)?env.DELIVERY_SENDING_ENABLED:'disabled',providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt:Date.now(),quotaNote:'Přehled zahrnuje pouze tuto frontu; nejde o celkovou zbývající kvótu účtu SMTP2GO.'}});
+        const lastAccepted=await env.ADMIN_DB.prepare('SELECT accepted_at,mode FROM delivery_jobs WHERE source IN ('+placeholders+') AND accepted_at IS NOT NULL ORDER BY accepted_at DESC LIMIT 1').bind(...sources).first();
+        const lastWebhook=await env.ADMIN_DB.prepare('SELECT e.received_at,e.event,j.mode FROM delivery_events e JOIN delivery_jobs j ON j.id=e.job_id WHERE j.source IN ('+placeholders+') ORDER BY e.received_at DESC LIMIT 1').bind(...sources).first();
+        const checkedAt=Date.now(),oldestQueuedAt=states.results.find(x=>x.state==='queued')?.oldest??null;
+        return json({status:'success',data:{states:states.results,items:items.results,health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:['test','live'].includes(env.DELIVERY_SENDING_ENABLED)?env.DELIVERY_SENDING_ENABLED:'disabled',providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:'Přehled zahrnuje pouze tuto frontu; nejde o celkovou zbývající kvótu účtu SMTP2GO.'}});
       }catch{throw new AdminError('DELIVERY_NOT_CONFIGURED',503);}
     }
     if(request.method==='GET'&&path[0]==='history'){
