@@ -26,3 +26,4 @@ jobs:
       - run: node tests/admin-api.mjs
       - run: node tests/outreach-admin.mjs
       - run: node tests/delivery.mjs
+      - run: node tests/outreach-delivery.mjs
