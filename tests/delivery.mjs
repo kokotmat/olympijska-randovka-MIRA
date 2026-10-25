@@ -64,6 +64,11 @@ await test('reservations have priority, attachments preserved, acceptance is not
  const sent=[];await processQueue(f.env,async(url,options)=>{assert.equal(url,'https://api.smtp2go.com/v3/email/send');const p=JSON.parse(options.body);sent.push(p);return accept('provider-'+sent.length);});
  const records=f.sqlite.prepare('SELECT * FROM delivery_jobs ORDER BY priority').all();assert.deepEqual(records.map(r=>r.source_id),['r2','r1','s1']);assert.equal(sent[0].attachments[0].mimetype,'application/pdf');assert.equal(sent[0].attachments[0].fileblob,Buffer.from('%PDF-1.4 offline fixture').toString('base64'));assert(records.every(r=>r.state==='accepted'&&r.delivered_at===null&&r.payload===''));assert.deepEqual(sent.map(p=>p.custom_headers.find(x=>x.header==='X-Randovka-Message-ID').value),records.map(r=>r.id));f.sqlite.close();
 });
+await test('inline image bytes and CID filename are preserved without external downloads',async()=>{
+ const f=fixture();await f.store.control('sponsors',policy);await f.store.enqueue('sponsors',message('photo',{kind:'initial',permission:'CONSENTED',html:'<img src="cid:classPhoto.jpg">',inlines:[{filename:'classPhoto.jpg',fileblob:'/9j/2Q=='}]}));
+ await processQueue(f.env,async(url,options)=>{const a=JSON.parse(options.body);assert.equal(url,'https://api.smtp2go.com/v3/email/send');assert.equal(a.inlines[0].filename,'classPhoto.jpg');assert.equal(a.inlines[0].fileblob,'/9j/2Q==');assert.equal(a.inlines[0].mimetype,'image/jpeg');assert.equal(a.html_body,'<img src="cid:classPhoto.jpg">');return accept();});
+ for(const inline of [{filename:'bad.svg',fileblob:'AAAA'},{filename:'../photo.jpg',fileblob:'AAAA'},{filename:'photo.jpg',fileblob:'invalid'}])await assert.rejects(f.store.enqueue('reservations',message('bad',{inlines:[inline]})),e=>e.code==='INVALID_INLINES');f.sqlite.close();
+});
 await test('timeout after possible send is uncertain and never automatically sent again',async()=>{
  const f=fixture();await f.store.control('reservations',{enabled:true});await f.store.enqueue('reservations',message('timeout'));let calls=0;
  await processQueue(f.env,async()=>{calls++;throw Error('timeout after provider accepted');});await processQueue(f.env,async()=>{calls++;return accept();});assert.equal(calls,1);assert.equal((await f.store.get('reservations','timeout')).state,'uncertain');f.sqlite.close();

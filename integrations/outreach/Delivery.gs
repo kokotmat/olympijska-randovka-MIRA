@@ -31,6 +31,12 @@ function rdOutreachFresh_(leads,id){
   const lead=rowToObject_(leads.data.headers,leads.sheet.getRange(ref.row,1,1,leads.data.headers.length).getValues()[0]);
   if(clean_(lead.campaign_id)!==id)throw Error('DELIVERY_ROW_MOVED');return {lead,row:ref.row};
 }
+function rdOutreachPresentation_(text,s){
+  if(!bool_(s.CLASS_PHOTO_ENABLED,true))return {html:'',inlinePhotoHash:''};
+  const bytes=Utilities.base64Decode(SPONSOR_CLASS_PHOTO_B64);if(!bytes.length||bytes.length>120000)throw Error('DELIVERY_PHOTO_INVALID');
+  const escaped=String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return {html:'<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#171717;white-space:pre-wrap">'+escaped+'</div><div style="margin:18px 0 0"><img src="cid:classPhoto.jpg" width="640" alt="Společná třídní fotografie maturantů" style="display:block;width:100%;max-width:640px;height:auto;border:0;border-radius:4px"></div>',inlinePhotoHash:v16Hash_(SPONSOR_CLASS_PHOTO_B64)};
+}
 function rdOutreachText_(lead,kind,s){
   const initialSubject=clean_(lead.email_subject),initialBody=normalizeEmailBody_(lead.email_body);
   if(clean_(lead.permission_status).toUpperCase()!=='CONSENTED'||!v17IsApproved_(lead)||clean_(lead.approved_message_hash)!==v16Hash_(initialSubject+'\n'+initialBody))throw Error('DELIVERY_APPROVAL_REQUIRED');
@@ -48,7 +54,8 @@ function rdOutreachText_(lead,kind,s){
   }
   const text=buildFinalBody_(body,s),recipient=clean_(lead.email_primary).toLowerCase();
   if(!isValidEmail_(recipient))throw Error('DELIVERY_RECIPIENT_INVALID');
-  return {subject,text,snapshot:v16Hash_(JSON.stringify([clean_(lead.campaign_id),recipient,v15CompanyKey_(lead),initialSubject,initialBody,clean_(lead.approved_message_hash),kind,subject,text]))};
+  const presentation=rdOutreachPresentation_(text,s);
+  return {subject,text,...presentation,snapshot:v16Hash_(JSON.stringify([clean_(lead.campaign_id),recipient,v15CompanyKey_(lead),initialSubject,initialBody,clean_(lead.approved_message_hash),kind,subject,text,presentation]))};
 }
 function rdOutreachLedgerRow_(ledger,attempt){
   const data=getSheetData_(ledger.sheet),found=[];data.rows.forEach((r,i)=>{if(clean_(r[data.map.attempt_id])===attempt)found.push(i+2);});if(found.length!==1)throw Error('DELIVERY_LEDGER_IDENTITY');return found[0];
@@ -104,7 +111,8 @@ function rdOutreachReviewPending_(outbox,leads,s,ledger){
       const pack=rdOutreachText_(ref.lead,entry.kind,s);if(pack.snapshot!==entry.snapshot_hash||v15CompanyKey_(ref.lead)!==entry.company_key)throw Error('DELIVERY_APPROVAL_CHANGED');}
     catch(e){const receipt=rdDeliveryRequest_('sponsors','cancel',{sourceId:entry.source_id});rdOutreachApply_(outbox,entry,receipt,leads,s,ledger);continue;}
     if(['prepared','unknown'].includes(entry.state)){
-      try{const receipt=rdDeliveryRequest_('sponsors','enqueue',JSON.parse(entry.payload));rdOutreachApply_(outbox,entry,receipt,leads,s,ledger);}
+      try{const payload=JSON.parse(entry.payload);if(payload.inlinePhotoHash){if(v16Hash_(SPONSOR_CLASS_PHOTO_B64)!==payload.inlinePhotoHash)throw Error('MESSAGE_CONFLICT');payload.inlines=[{filename:'classPhoto.jpg',fileblob:SPONSOR_CLASS_PHOTO_B64}];}delete payload.inlinePhotoHash;
+        const receipt=rdDeliveryRequest_('sponsors','enqueue',payload);rdOutreachApply_(outbox,entry,receipt,leads,s,ledger);}
       catch(e){if(['MESSAGE_CANCELLED','RECIPIENT_SUPPRESSED','MESSAGE_CONFLICT'].includes(e.message)){const receipt=rdDeliveryRequest_('sponsors','cancel',{sourceId:entry.source_id});rdOutreachApply_(outbox,entry,receipt,leads,s,ledger);}else{rdOutreachSave_(outbox,entry,{state:'unknown',last_error:'DELIVERY_RESULT_UNKNOWN',checked_at:new Date()});throw Error('DELIVERY_RESULT_UNKNOWN');}}
     }
   }
@@ -121,7 +129,8 @@ function rdOutreachPrepare_(ref,kind,outbox,leads,s,ledger){
   if(kind==='initial'&&(clean_(lead.send_status)||asDate_(lead.sent_at)))throw Error('DELIVERY_ALREADY_RESERVED');
   if(kind==='initial'&&v17BccForLead_(lead,ledger).length)throw Error('DELIVERY_BCC_REVIEW_REQUIRED');
   const type=kind==='initial'?'FIRST':'FOLLOWUP_'+kind.split(':')[1],index=v15Reserve_(ledger,type,lead,current.row,''),attempt=String(ledger.sheet.getRange(index,2).getValues()[0][0]);
-  const id='live:sponsor:'+v16Hash_(JSON.stringify([clean_(lead.campaign_id),type,attempt])),payload={sourceId:id,mode:'live',kind,permission:'CONSENTED',to:clean_(lead.email_primary).toLowerCase(),subject:pack.subject,text:pack.text,html:'',attachments:[],expiresAt:null};
+  const id='live:sponsor:'+v16Hash_(JSON.stringify([clean_(lead.campaign_id),type,attempt])),payload={sourceId:id,mode:'live',kind,permission:'CONSENTED',to:clean_(lead.email_primary).toLowerCase(),subject:pack.subject,text:pack.text,html:pack.html,inlinePhotoHash:pack.inlinePhotoHash,attachments:[],expiresAt:null};
+  if(JSON.stringify(payload).length>45000)throw Error('DELIVERY_CELL_LIMIT');
   const values={source_id:id,campaign_id:clean_(lead.campaign_id),kind,recipient:payload.to,company_key:v15CompanyKey_(lead),snapshot_hash:pack.snapshot,ledger_attempt_id:attempt,state:'prepared',provider_id:'',accepted_at:'',delivered_at:'',checked_at:new Date(),last_error:'',created_at:new Date(),payload:JSON.stringify(payload)};
   outbox.sheet.appendRow(RD_OUTBOX_HEADERS.map(h=>values[h]));const entry={...values,row:outbox.sheet.getLastRow()};outbox.rows.push(entry);SpreadsheetApp.flush();
   updateLeadFields_(leads.sheet,leads.data.map,current.row,{...(kind==='initial'?{send_status:'RESERVED'}:{}),central_delivery_id:id,central_delivery_status:'prepared',automation_status:'CENTRAL_QUEUED',last_processed_at:new Date()});SpreadsheetApp.flush();

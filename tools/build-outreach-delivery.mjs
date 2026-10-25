@@ -15,6 +15,7 @@ export function buildOutreachDelivery(input){
  hook('processDueFollowups_',"if(rdOutreachUsesCentral_())return 0; // Central tick owns follow-ups and receipts.");
  hook('v15SenderCheck_',"if(rdOutreachUsesCentral_()){v200Owner_();if(clean_(s.SENDER_EMAIL).toLowerCase()!==V200.OWNER)throw Error('DELIVERY_SENDER_MISMATCH');return;}");
  hook('v16QueueTickUnlocked_',"if(rdOutreachUsesCentral_())return rdOutreachTick_(false);");
+ replace("if(senderProvider_(v200Context_?v200Context_.settings:getSettings_())!=='GMAIL_WORKSPACE')return [];", "if(!['GMAIL_WORKSPACE','CENTRAL_SMTP2GO'].includes(senderProvider_(v200Context_?v200Context_.settings:getSettings_())))return []; // Preserve BCC detection; central admission requires review.");
  replace('try{if(v200Waiting_())return;return v16QueueTickUnlocked_();}', 'try{if(rdOutreachUsesCentral_())return rdOutreachTick_(false);if(v200Waiting_())return;return v16QueueTickUnlocked_();}');
  replace('    if(v200Waiting_())return;\n    processBounces_();processReplies_(false);', "    if(rdOutreachUsesCentral_()){rdDeliveryTick_('sponsors',false,rdOutreachWindow_(getSettings_()));processBounces_();processReplies_(false);return rdOutreachTick_(false);}\n    if(v200Waiting_())return;\n    processBounces_();processReplies_(false);");
  replace("provider:settings.SENDER_PROVIDER||'Neověřeno'", "provider:typeof rdOutreachUsesCentral_==='function'&&rdOutreachUsesCentral_()?'CENTRAL_SMTP2GO':settings.SENDER_PROVIDER||'Neověřeno'");
