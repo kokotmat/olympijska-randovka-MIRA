@@ -19,7 +19,7 @@ function outreachAdminVerify_(d){
 }
 function outreachAdminSettings_(){const s=outreachAdminBook_().getSheetByName('SETTINGS');if(!s)throw Error('BRIDGE_SCHEMA');return Object.fromEntries(s.getDataRange().getValues().slice(1).filter(r=>r[0]).map(r=>[String(r[0]),String(r[1])]));}
 function outreachAdminSponsor_(r,map){const get=k=>String(r[map[k]]||'');return {id:get('campaign_id'),name:get('organization_name')||get('brand_name')||get('legal_entity'),email:get('email_primary'),
-  communicationStatus:get('reply_status')||get('automation_status')||get('send_status'),giftStatus:get(OUTREACH_ADMIN_FIELDS.giftStatus)||'Neověřeno',contractStatus:get(OUTREACH_ADMIN_FIELDS.contractStatus)||'Neověřeno',logoStatus:get(OUTREACH_ADMIN_FIELDS.logoStatus)||'Neověřeno',note:get(OUTREACH_ADMIN_FIELDS.note),...Object.fromEntries(['giftDescription','receivedDescription','deliveryStatus','contractReference','promotion'].map(k=>[k,get(OUTREACH_ADMIN_FIELDS[k])])),version:outreachAdminHash_(r)};}
+  communicationStatus:get('reply_status')||get('automation_status')||get('send_status'),mailDeliveryStatus:get('central_delivery_status'),mailDeliveryCheckedAt:r[map.central_delivery_checked_at] instanceof Date?r[map.central_delivery_checked_at].getTime():null,giftStatus:get(OUTREACH_ADMIN_FIELDS.giftStatus)||'Neověřeno',contractStatus:get(OUTREACH_ADMIN_FIELDS.contractStatus)||'Neověřeno',logoStatus:get(OUTREACH_ADMIN_FIELDS.logoStatus)||'Neověřeno',note:get(OUTREACH_ADMIN_FIELDS.note),...Object.fromEntries(['giftDescription','receivedDescription','deliveryStatus','contractReference','promotion'].map(k=>[k,get(OUTREACH_ADMIN_FIELDS[k])])),version:outreachAdminHash_(r)};}
 function setupOutreachAdmin(){
   v200Owner_();const d=outreachAdminRows_();const missing=Object.values(OUTREACH_ADMIN_FIELDS).filter(h=>!d.headers.includes(h));
   if(missing.length){const end=d.headers.length+missing.length,max=d.sheet.getMaxColumns();if(max<end)d.sheet.insertColumnsAfter(max,end-max);d.sheet.getRange(1,d.headers.length+1,1,missing.length).setValues([missing]);}
@@ -41,7 +41,7 @@ function outreachAdmin_(d){
     outreachAdminVerify_(d);if(!['health','sponsors','sponsor','history','commandStatus','pauseCampaign','updateSponsor'].includes(d.op))throw Error('REJECTED');
     lock=LockService.getScriptLock();if(!lock.tryLock(5000))throw Error('BUSY');
     const settings=outreachAdminSettings_(),p=PropertiesService.getScriptProperties(),data=outreachAdminRows_();
-    if(d.op==='health')return {status:'success',data:{release:'central-admin-v1',checkedAt:Date.now(),provider:settings.SENDER_PROVIDER||'Neověřeno',queueRunning:settings.V16_QUEUE_RUNNING==='TRUE',state:p.getProperty('V200_STATE')||'Neověřeno',remainingRecipients:MailApp.getRemainingDailyQuota(),lastHeartbeat:p.getProperty('V200_HEARTBEAT'),version:outreachAdminHash_([settings.CAMPAIGN_ENABLED,settings.V16_QUEUE_RUNNING])}};
+    if(d.op==='health')return {status:'success',data:{release:'central-admin-v1',checkedAt:Date.now(),provider:typeof rdOutreachUsesCentral_==='function'&&rdOutreachUsesCentral_()?'CENTRAL_SMTP2GO':settings.SENDER_PROVIDER||'Neověřeno',queueRunning:settings.V16_QUEUE_RUNNING==='TRUE',state:p.getProperty('V200_STATE')||'Neověřeno',remainingRecipients:MailApp.getRemainingDailyQuota(),lastHeartbeat:p.getProperty('V200_HEARTBEAT'),version:outreachAdminHash_([settings.CAMPAIGN_ENABLED,settings.V16_QUEUE_RUNNING])}};
     if(d.op==='sponsors'){
       const q=String(d.args.q||'').slice(0,120).toLowerCase(),offset=Math.max(0,parseInt(d.args.cursor||'0',10)||0);
       const rows=data.rows.filter(r=>r[data.map.campaign_id]).map(r=>outreachAdminSponsor_(r,data.map)).filter(r=>!q||[r.name,r.email,r.id].some(v=>v.toLowerCase().includes(q)));
@@ -59,7 +59,7 @@ function outreachAdmin_(d){
         if(outreachAdminHash_([settings.CAMPAIGN_ENABLED,settings.V16_QUEUE_RUNNING])!==d.expectedVersion)throw Error('CONFLICT');
         const s=outreachAdminBook_().getSheetByName('SETTINGS'),values=s.getDataRange().getValues();
         for(const key of ['CAMPAIGN_ENABLED','V16_QUEUE_RUNNING']){const i=values.findIndex(r=>r[0]===key);if(i<1)throw Error('BRIDGE_SCHEMA');s.getRange(i+1,2).setValue('FALSE');}
-        SpreadsheetApp.flush();result={status:'success',data:{paused:true}};
+        SpreadsheetApp.flush();if(typeof rdOutreachUsesCentral_==='function'&&rdOutreachUsesCentral_())rdDeliveryTick_('sponsors',false,rdOutreachWindow_(settings));result={status:'success',data:{paused:true}};
       }else{
         const i=data.rows.findIndex(r=>String(r[data.map.campaign_id])===d.args.id);if(i<0)throw Error('NOT_FOUND');const row=data.rows[i];
         if(outreachAdminHash_(row)!==d.expectedVersion)throw Error('CONFLICT');const fields=d.args.fields;

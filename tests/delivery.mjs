@@ -6,7 +6,7 @@ import {onRequest} from '../functions/api/delivery.js';
 import {onRequest as adminRequest} from '../functions/api/admin/[[path]].js';
 import {onRequest as webhookRequest} from '../functions/api/delivery-webhook.js';
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');sqlite.exec(fs.readFileSync(new URL('../admin/migrations/0002_delivery.sql',import.meta.url),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const file of ['0002_delivery.sql','0003_delivery_cancellations.sql'])sqlite.exec(fs.readFileSync(new URL('../admin/migrations/'+file,import.meta.url),'utf8'));
  const db={prepare(sql){let args=[];return {bind(...v){args=v;return this;},async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){const r=sqlite.prepare(sql).run(...args);return {success:true,meta:{changes:r.changes}};}};},async batch(items){sqlite.exec('BEGIN IMMEDIATE');try{const r=[];for(const item of items)r.push(await item.run());sqlite.exec('COMMIT');return r;}catch(e){sqlite.exec('ROLLBACK');throw e;}}};
  const env={ADMIN_DB:db,RESERVATIONS_ADMIN_SECRET:'offline-reservations-key-'.repeat(2),SPONSORS_ADMIN_SECRET:'offline-sponsors-key-'.repeat(2),SMTP2GO_API_KEY:'offline-never-transmit',DELIVERY_SENDING_ENABLED:'live'};
  return {sqlite,db,env,store:new DeliveryStore(db)};
@@ -39,6 +39,25 @@ await test('signed source cannot be swapped and replayed nonce is rejected',asyn
 await test('same source ID returns one receipt and changed content conflicts',async()=>{
  const f=fixture(),a=message('reservation:123:tickets');const one=await f.store.enqueue('reservations',a),two=await f.store.enqueue('reservations',a);assert.equal(one.id,two.id);await assert.rejects(f.store.enqueue('reservations',{...a,text:'Changed'}),x=>x.code==='MESSAGE_CONFLICT');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM delivery_jobs').get().n,1);await assert.rejects(f.store.enqueue('sponsors',message('sponsor:1',{kind:'initial'})),x=>x.code==='RECIPIENT_PERMISSION_REQUIRED');f.sqlite.close();
 });
+await test('source synchronization is bounded and never exposes another source receipt',async()=>{
+ const f=fixture();await f.store.enqueue('reservations',message('shared-id'));await f.store.enqueue('sponsors',message('sponsor-id',{kind:'initial',permission:'CONSENTED'}));
+ f.sqlite.prepare('INSERT INTO delivery_suppressions VALUES(?,?,?)').run('blocked@example.test','spam',Date.now());
+ const r=await f.store.sync('sponsors',{sourceIds:['shared-id','sponsor-id'],recipients:['BLOCKED@example.test','clear@example.test']});assert.equal(r.items.length,1);assert.equal(r.items[0].source,'sponsors');assert.equal(r.suppressed[0].recipient,'blocked@example.test');assert(!JSON.stringify(r).includes('No real email'));
+ await assert.rejects(f.store.sync('sponsors',{sourceIds:Array(51).fill('x')}),x=>x.code==='INVALID_SYNC');await assert.rejects(f.store.sync('sponsors',{recipients:['invalid']}),x=>x.code==='INVALID_SYNC');f.sqlite.close();
+});
+await test('durable cancellation blocks delayed admission and never reverses acceptance',async()=>{
+ const f=fixture();assert.equal((await f.store.cancel('sponsors',{sourceId:'late'})).state,'cancelled');await assert.rejects(f.store.enqueue('sponsors',message('late',{kind:'initial',permission:'CONSENTED'})),x=>x.code==='MESSAGE_CANCELLED');
+ assert.equal((await f.store.sync('sponsors',{sourceIds:['late']})).items[0].state,'cancelled');
+ const job=await f.store.enqueue('reservations',message('queued'));assert.equal((await f.store.cancel('reservations',{sourceId:'queued'})).state,'cancelled');assert.equal((await f.store.get('reservations','queued')).payload,'');
+ const accepted=await f.store.enqueue('reservations',message('accepted'));f.sqlite.prepare("UPDATE delivery_jobs SET state='accepted',accepted_at=? WHERE id=?").run(Date.now(),accepted.id);assert.equal((await f.store.cancel('reservations',{sourceId:'accepted'})).state,'accepted');
+ assert.equal((await f.store.enqueue('reservations',message('late'))).state,'queued');f.sqlite.close();
+});
+await test('cancellation winning after selection prevents a provider call and attempt',async()=>{
+ const f=fixture();await f.store.control('reservations',{enabled:true});await f.store.enqueue('reservations',message('race-cancel'));
+ const prepare=f.db.prepare.bind(f.db);let intercepted=false;
+ f.db.prepare=sql=>{const q=prepare(sql);if(sql.includes("state='sending'")&&sql.includes('RETURNING id')){const first=q.first.bind(q);q.first=async()=>{if(!intercepted){intercepted=true;await f.store.cancel('reservations',{sourceId:'race-cancel'});}return first();};}return q;};
+ await processQueue(f.env,async()=>{throw Error('cancelled job must not send');});assert(intercepted);assert.equal((await f.store.get('reservations','race-cancel')).state,'cancelled');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM delivery_attempts').get().n,0);f.sqlite.close();
+});
 await test('reservations have priority, attachments preserved, acceptance is not delivery',async()=>{
  const f=fixture();await f.store.control('reservations',{enabled:true});await f.store.control('sponsors',policy);
  await f.store.enqueue('sponsors',message('s1',{kind:'initial',permission:'CONSENTED'}));await f.store.enqueue('reservations',message('r1',{kind:'confirmation',expiresAt:Date.now()+600000}));await f.store.enqueue('reservations',message('r2',{attachments:[{filename:'Ticket.pdf',fileblob:Buffer.from('%PDF-1.4 offline fixture').toString('base64')}]}));
@@ -65,7 +84,7 @@ await test('webhooks deduplicate and delayed processing never reverses delivered
 });
 await test('webhook arriving during provider request wins over later acceptance response',async()=>{
  const f=fixture();await f.store.control('reservations',{enabled:true});const job=await f.store.enqueue('reservations',message('early-event'));
- await processQueue(f.env,async()=>{await receiveEvent(f.store,{id:'early',event:'delivered',email_id:'early-id',rcpt:'person@example.test',time:new Date().toISOString(),'X-Randovka-Message-ID':job.id});return accept('early-id');});assert.equal((await f.store.get('reservations','early-event')).state,'delivered');f.sqlite.close();
+ await processQueue(f.env,async()=>{await receiveEvent(f.store,{id:'early',event:'delivered',email_id:'early-id',rcpt:'person@example.test',time:new Date().toISOString(),'X-Randovka-Message-ID':job.id});return accept('early-id');});const row=await f.store.get('reservations','early-event');assert.equal(row.state,'delivered');assert(row.accepted_at>0);assert.equal(row.provider_id,'early-id');f.sqlite.close();
 });
 await test('test mode is isolated and can only dispatch to explicitly configured test recipient',async()=>{
  const f=fixture();await f.store.control('reservations',{enabled:true});await f.store.enqueue('reservations',message('live'));await f.store.enqueue('reservations',message('test',{mode:'test'}));let calls=0;

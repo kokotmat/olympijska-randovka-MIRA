@@ -3,7 +3,7 @@
  * ADMIN_BRIDGE_SECRET already belongs to this source; signature namespace is separate.
  */
 function rdDeliveryRequest_(source,op,args){
-  if(!['reservations','sponsors'].includes(source)||!['enqueue','status','tick'].includes(op))throw new Error('DELIVERY_OPERATION_REJECTED');
+  if(!['reservations','sponsors'].includes(source)||!['enqueue','status','sync','cancel','tick'].includes(op))throw new Error('DELIVERY_OPERATION_REJECTED');
   const secret=PropertiesService.getScriptProperties().getProperty('ADMIN_BRIDGE_SECRET')||'';
   if(secret.length<32)throw new Error('DELIVERY_NOT_CONFIGURED');
   const d={source:source,op:op,args:args,ts:Date.now(),nonce:Utilities.getUuid()};
@@ -14,7 +14,7 @@ function rdDeliveryRequest_(source,op,args){
   catch(_){throw new Error('DELIVERY_RESULT_UNKNOWN');}
   let result;try{result=JSON.parse(response.getContentText());}catch(_){throw new Error('DELIVERY_RESULT_UNKNOWN');}
   if(response.getResponseCode()!==200||result.status!=='success'){
-    const known=['MESSAGE_CONFLICT','MESSAGE_EXPIRED','RECIPIENT_PERMISSION_REQUIRED','NOT_FOUND','INVALID_MESSAGE','INVALID_MODE','INVALID_POLICY'];
+    const known=['MESSAGE_CONFLICT','MESSAGE_CANCELLED','MESSAGE_EXPIRED','RECIPIENT_PERMISSION_REQUIRED','RECIPIENT_SUPPRESSED','NOT_FOUND','INVALID_MESSAGE','INVALID_MODE','INVALID_POLICY','INVALID_SYNC'];
     throw new Error(known.includes(result.code)?result.code:'DELIVERY_RESULT_UNKNOWN');
   }
   return result.data;
