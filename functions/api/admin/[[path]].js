@@ -10,6 +10,17 @@ export async function onRequest({request,env,data}){
       const components=await Promise.all(['reservations','sponsors','assistant'].map(name=>componentState(env,name,user.email)));
       return json({status:'success',data:{checkedAt:Date.now(),components}});
     }
+    if(request.method==='GET'&&path[0]==='delivery'&&path[1]==='overview'){
+      if(!env.ADMIN_DB)throw new AdminError('DELIVERY_NOT_CONFIGURED',503);
+      const sources=user.role==='sponsors'?['sponsors']:user.role==='reservations'?['reservations']:['reservations','sponsors'];
+      if(!['admin','sponsors','reservations','viewer'].includes(user.role))throw new AdminError('FORBIDDEN',403);
+      try{
+        const placeholders=sources.map(()=>'?').join(',');
+        const states=await env.ADMIN_DB.prepare('SELECT state,COUNT(*) AS count,MIN(created_at) AS oldest FROM delivery_jobs WHERE source IN ('+placeholders+') GROUP BY state').bind(...sources).all();
+        const items=await env.ADMIN_DB.prepare('SELECT id,source,source_id,mode,kind,recipient,subject,state,created_at,accepted_at,delivered_at,error_code FROM delivery_jobs WHERE source IN ('+placeholders+') ORDER BY created_at DESC LIMIT 50').bind(...sources).all();
+        return json({status:'success',data:{states:states.results,items:items.results,sendingMode:['test','live'].includes(env.DELIVERY_SENDING_ENABLED)?env.DELIVERY_SENDING_ENABLED:'disabled',providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt:Date.now(),quotaNote:'Přehled zahrnuje pouze tuto frontu; nejde o celkovou zbývající kvótu účtu SMTP2GO.'}});
+      }catch{throw new AdminError('DELIVERY_NOT_CONFIGURED',503);}
+    }
     if(request.method==='GET'&&path[0]==='history'){
       permit(user,'history');if(!env.ADMIN_DB)throw new AdminError('AUDIT_STORE_NOT_CONFIGURED',503);
       const rows=await env.ADMIN_DB.prepare('SELECT id,actor,component,operation,state,created_at,finished_at FROM commands ORDER BY created_at DESC LIMIT 100').all();
