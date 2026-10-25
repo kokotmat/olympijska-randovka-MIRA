@@ -67,7 +67,7 @@ function outreachAdmin_(d){
           const a=d.args;if(settings.CAMPAIGN_ENABLED==='TRUE'||settings.V16_QUEUE_RUNNING==='TRUE'||!['PILOT','LIVE'].includes(a.mode)||!Number.isInteger(a.dailyLimit)||a.dailyLimit<1||a.dailyLimit>200||!Array.isArray(a.days)||!a.days.length||a.days.length>7||a.days.some(x=>!Number.isInteger(x)||x<1||x>7)||!Number.isInteger(a.startHour)||!Number.isInteger(a.endHour)||a.startHour<0||a.endHour>24||a.startHour>=a.endHour||!Number.isInteger(a.maxFollowups)||a.maxFollowups<0||a.maxFollowups>3)throw Error('REJECTED');
           fields={MODE:a.mode,DAILY_SEND_LIMIT:String(a.dailyLimit),SEND_WEEKDAYS:[...new Set(a.days)].sort().map(x=>['MON','TUE','WED','THU','FRI','SAT','SUN'][x-1]).join(','),SEND_START_HOUR:String(a.startHour),SEND_END_HOUR:String(a.endHour),MAX_FOLLOWUPS:String(a.maxFollowups)};
         }else{
-          if(d.args.confirmation!=='SPUSTIT KAMPAŇ'||!['LIVE','PILOT'].includes(settings.MODE)||p.getProperty('V201_DMARC_STATE')!=='OK')throw Error('REJECTED');
+          if(d.args.confirmation!=='SPUSTIT KAMPAŇ'||!['LIVE','PILOT'].includes(settings.MODE)||p.getProperty('V201_DMARC_STATE')!=='OK'||!Number.isInteger(Number(settings.DAILY_SEND_LIMIT))||Number(settings.DAILY_SEND_LIMIT)<1||Number(settings.DAILY_SEND_LIMIT)>200)throw Error('REJECTED');
           const handlers=ScriptApp.getProjectTriggers().map(t=>t.getHandlerFunction());if(!handlers.includes('v16QueueTick'))throw Error('REJECTED');
           rdOutreachWindow_(settings);fields={CAMPAIGN_ENABLED:'TRUE',V16_QUEUE_RUNNING:'TRUE'};
         }
