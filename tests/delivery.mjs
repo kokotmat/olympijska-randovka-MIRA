@@ -15,6 +15,11 @@ const message=(sourceId,more={})=>({sourceId,mode:'live',kind:'tickets',to:'pers
 const policy={enabled:true,window:{days:[1,2,3,4,5,6,7],startMinute:0,endMinute:1440}};
 const accept=(id='offline-provider-id')=>Response.json({data:{succeeded:1,failed:0,email_id:id}});
 let count=0;async function test(name,fn){await fn();count++;console.log('PASS',name);}
+await test('invalid webhook fields report bounded codes without recording data',async()=>{
+ const f=fixture(),e={event:'processed',id:'sample-webhook',email_id:'sample-email',rcpt:'person@example.test',time:new Date().toISOString()};
+ for(const [change,code] of [[{event:'unknown'},'INVALID_EVENT_TYPE'],[{id:''},'INVALID_EVENT_ID'],[{email_id:null},'INVALID_EVENT_EMAIL_ID'],[{rcpt:null},'INVALID_EVENT_RECIPIENT'],[{time:'invalid'},'INVALID_EVENT_TIME']])await assert.rejects(receiveEvent(f.store,{...e,...change}),x=>x.code===code);
+ assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM delivery_events').get().n,0);f.sqlite.close();
+});
 await test('signed source cannot be swapped and replayed nonce is rejected',async()=>{
  const f=fixture(),e={source:'reservations',op:'status',args:{sourceId:'x'},ts:Date.now(),nonce:crypto.randomUUID()};e.signature=await deliverySignature(e,f.env.RESERVATIONS_ADMIN_SECRET);await verifyDelivery(e,f.env);await assert.rejects(verifyDelivery({...e,source:'sponsors'},f.env),x=>x.code==='AUTH');await f.store.nonce(e,Date.now());await assert.rejects(f.store.nonce(e,Date.now()),x=>x.code==='REPLAY');f.sqlite.close();
 });
