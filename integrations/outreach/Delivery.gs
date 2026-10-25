@@ -39,6 +39,11 @@ function rdOutreachPresentation_(text,s){
 }
 function rdOutreachText_(lead,kind,s){
   const initialSubject=clean_(lead.email_subject),initialBody=normalizeEmailBody_(lead.email_body);
+  const minimum=Number(s.MIN_QA_SCORE??85),score=Number(lead.qa_score);
+  if(!Number.isFinite(minimum)||minimum<0||minimum>100||!Number.isFinite(score)||score<minimum||clean_(lead.qa_status).toUpperCase()!=='PASS')throw Error('DELIVERY_QA_FAILED');
+  if(clean_(lead.domain_status).toUpperCase()!=='ACTIVE'||clean_(lead.blacklist_checked).toUpperCase()!=='YES'||clean_(lead.duplicate_checked).toUpperCase()!=='YES'||!canSendPriority_(lead,s,clean_(s.MODE).toUpperCase()))throw Error('DELIVERY_CONTACT_REVIEW_REQUIRED');
+  const mapping=(s.__rdDeliveryMap||(s.__rdDeliveryMap=v15MappingCache_()))[v15MapKey_(lead.category,lead.subcategory)];
+  if(!mapping||clean_(mapping.confidence).toUpperCase()==='REVIEW'&&!v17ManualMapReviewAllowed_(lead,mapping))throw Error('DELIVERY_MAPPING_REVIEW_REQUIRED');
   if(clean_(lead.permission_status).toUpperCase()!=='CONSENTED'||!v17IsApproved_(lead)||clean_(lead.approved_message_hash)!==v16Hash_(initialSubject+'\n'+initialBody))throw Error('DELIVERY_APPROVAL_REQUIRED');
   if(clean_(lead.template_version)!=='OWN_2027_V15'||!localEmailQA_(lead,initialSubject,initialBody).pass||!initialBody.includes(companyNameForLead_(lead,s)))throw Error('DELIVERY_QA_FAILED');
   if(clean_(lead.reply_status)||isSuppressed_(clean_(lead.email_primary)))throw Error('DELIVERY_RECIPIENT_BLOCKED');
