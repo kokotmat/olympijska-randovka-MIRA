@@ -14,7 +14,7 @@ function outreachAdminVerify_(d){
   if(secret.length<32||!allowed.length)throw Error('BRIDGE_NOT_CONFIGURED');
   if(d.v!==1||!Number.isSafeInteger(d.ts)||Math.abs(Date.now()-d.ts)>120000||!/^[a-f0-9-]{36}$/i.test(d.nonce||'')||!allowed.includes(d.actor)||!d.args||typeof d.args!=='object'||Array.isArray(d.args))throw Error('AUTH');
   const value=JSON.stringify(['randovka-admin-v1',d.ts,d.nonce,d.op,d.actor,d.commandId||'',d.expectedVersion||'',d.args]);
-  const expected=Utilities.computeHmacSha256Signature(value,secret).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
+  const expected=Utilities.computeHmacSha256Signature(value,secret,Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
   const x=outreachAdminHash_(String(d.signature)),y=outreachAdminHash_(expected);let diff=0;for(let i=0;i<x.length;i++)diff|=x.charCodeAt(i)^y.charCodeAt(i);if(diff)throw Error('AUTH');
 }
 function outreachAdminSettings_(){const s=outreachAdminBook_().getSheetByName('SETTINGS');if(!s)throw Error('BRIDGE_SCHEMA');return Object.fromEntries(s.getDataRange().getValues().slice(1).filter(r=>r[0]).map(r=>[String(r[0]),String(r[1])]));}

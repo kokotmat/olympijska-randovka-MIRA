@@ -474,14 +474,14 @@ function cancelSelected() {
 }
 
 // Scanner sessions are signed, mode-bound and expire after 6 hours. PIN never enters a URL.
-function sign_(s,c) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s,c.secret)).replace(/=+$/,''); }
+function sign_(s,c) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s,c.secret,Utilities.Charset.UTF_8)).replace(/=+$/,''); }
 function scannerClient_(data) {
   const secret=props_().getProperty('SCANNER_GATEWAY_SECRET')||'',g=data&&data.gateway;
   if(secret.length<32)throw new Error('Přihlášení není nakonfigurováno. Kontaktujte správce.');
   if(!g||g.v!==2||!Number.isFinite(g.ts)||Math.abs(Date.now()-g.ts)>120000||
     !/^[a-f0-9-]{36}$/.test(String(g.nonce))||!/^\w{64}$/.test(String(g.client))||!/^\w{64}$/.test(String(g.network))||!/^\w{64}$/.test(String(g.signature)))throw new Error('Přihlaste se přes skener na olympijskarandovka.cz.');
   const text=['scanner-login-v2',g.ts,g.nonce,g.client,g.network,digest_(String(data.pin))].join('\n');
-  const expected=Utilities.computeHmacSha256Signature(text,secret).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
+  const expected=Utilities.computeHmacSha256Signature(text,secret,Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
   if(!sameSecret_(g.signature,expected))throw new Error('Neplatný požadavek přihlášení.');
   return {client:g.client,network:g.network};
 }

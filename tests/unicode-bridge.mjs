@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import crypto from 'node:crypto';
+const secret='offline-unicode-key'.repeat(3);let request;
+const signed=bytes=>Array.from(bytes,b=>b>127?b-256:b);
+const ctx=vm.createContext({Date,JSON,Error,PropertiesService:{getScriptProperties:()=>({getProperty:()=>secret})},Utilities:{Charset:{UTF_8:'utf8'},getUuid:()=>crypto.randomUUID(),computeHmacSha256Signature:(v,k,charset)=>signed(crypto.createHmac('sha256',k).update(charset==='utf8'?v:v.replace(/[^\x00-\x7F]/g,'?')).digest())},UrlFetchApp:{fetch:(_,options)=>{request=JSON.parse(options.payload);return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({status:'success',data:{accepted:true}})};}}});
+vm.runInContext(fs.readFileSync(new URL('../integrations/delivery/Client.gs',import.meta.url),'utf8'),ctx);
+ctx.rdDeliveryRequest_('sponsors','enqueue',{subject:'Žádost o podporu – V8.A',text:'Děkujeme za Vaši podporu 🟠'});
+const canonical=JSON.stringify(['randovka-delivery-v1',request.ts,request.nonce,request.source,request.op,request.args]);
+assert.equal(request.signature,crypto.createHmac('sha256',secret).update(canonical,'utf8').digest('hex'));
+console.log('PASS Czech text and emoji use the same UTF-8 HMAC in Apps Script and the gateway; no network or email');
