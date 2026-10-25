@@ -1,6 +1,8 @@
 import {AdminError,json,errorResponse,permit} from '../../../lib/admin/access.js';
 import {bridge,componentState} from '../../../lib/admin/bridge.js';
 import {operations,deliverySettings} from '../../../lib/admin/operations.js';
+import {providerQuota,pragueDay} from '../../../lib/admin/quota.js';
+import {digest as sha256} from '../../../lib/admin/delivery.js';
 const WRITES={reservations:new Set(['cancelOrder','retryMail','closeSales','closeGate']),sponsors:new Set(['pauseCampaign','updateSponsor','configureCampaign','resumeCampaign']),assistant:new Set(['pauseAi','resumeAi','retryJob'])};
 const READS={reservations:new Set(['orders','order','history']),sponsors:new Set(['campaign','sponsors','sponsor','history']),assistant:new Set(['jobs','usage','history'])};
 export async function onRequest({request,env,data}){
@@ -11,6 +13,25 @@ export async function onRequest({request,env,data}){
     if(request.method==='GET'&&path[0]==='overview'){
       const components=await Promise.all(['reservations','sponsors','assistant'].map(name=>componentState(env,name,user.email)));
       return json({status:'success',data:{checkedAt:Date.now(),components}});
+    }
+    if(request.method==='GET'&&path[0]==='operations'){
+      if(user.role!=='admin')throw new AdminError('FORBIDDEN',403);if(!env.ADMIN_DB)throw new AdminError('OPS_NOT_CONFIGURED',503);
+      if(path[1]==='backup'){
+        const row=await env.ADMIN_DB.prepare('SELECT * FROM ops_backups WHERE source=? AND day=?').bind(url.searchParams.get('source'),url.searchParams.get('day')).first();if(!row)throw new AdminError('NOT_FOUND',404);
+        return new Response(Uint8Array.from(atob(row.payload),c=>c.charCodeAt(0)),{headers:{'Content-Type':'application/gzip','Content-Disposition':'attachment; filename="randovka-'+row.source+'-'+row.day+'.gz"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+      }
+      const reports=await env.ADMIN_DB.prepare('SELECT * FROM ops_reports').all(),backups=await env.ADMIN_DB.prepare('SELECT source,day,created_at,sha256,format FROM ops_backups ORDER BY created_at DESC LIMIT 30').all();return json({status:'success',data:{reports:reports.results,backups:backups.results,checkedAt:Date.now()}});
+    }
+    if(request.method==='GET'&&path[0]==='delivery'&&path[1]==='messages'){
+      if(!['admin','viewer','sponsors','reservations'].includes(user.role))throw new AdminError('FORBIDDEN',403);if(!env.ADMIN_DB)throw new AdminError('DELIVERY_NOT_CONFIGURED',503);
+      const sources=['sponsors','reservations'].includes(user.role)?[user.role]:['sponsors','reservations'],clauses=['source IN ('+sources.map(()=>'?').join(',')+')'],args=[...sources];
+      const state=url.searchParams.get('state')||'',source=url.searchParams.get('source')||'',q=(url.searchParams.get('q')||'').slice(0,120);
+      if(state){if(!['queued','sending','uncertain','accepted','processed','delivered','bounced','rejected','suppressed','expired','cancelled'].includes(state))throw new AdminError('INVALID_FILTER');clauses.push('state=?');args.push(state);}
+      if(source){if(!sources.includes(source))throw new AdminError('FORBIDDEN',403);clauses.push('source=?');args.push(source);}
+      if(q){clauses.push("(recipient LIKE ? ESCAPE '\\' OR subject LIKE ? ESCAPE '\\' OR id=?)");const term='%'+q.replace(/[\\%_]/g,'\\$&')+'%';args.push(term,term,q);}
+      const cursor=url.searchParams.get('cursor');if(cursor){try{if(cursor.length>300)throw Error();const [at,id]=JSON.parse(atob(cursor.replace(/-/g,'+').replace(/_/g,'/')));if(!Number.isSafeInteger(at)||!/^\w{64}$/.test(id))throw Error();clauses.push('(created_at<? OR (created_at=? AND id<?))');args.push(at,at,id);}catch{throw new AdminError('INVALID_CURSOR');}}
+      const r=await env.ADMIN_DB.prepare('SELECT id,source,source_id,mode,kind,recipient,subject,state,created_at,accepted_at,delivered_at,error_code,provider_id,event_at FROM delivery_jobs WHERE '+clauses.join(' AND ')+' ORDER BY created_at DESC,id DESC LIMIT 51').bind(...args).all();const items=r.results.slice(0,50);for(const x of items)if(x.state==='uncertain')x.version=await sha256(JSON.stringify([x.id,x.state,x.provider_id,x.event_at]));
+      const last=items.at(-1),nextCursor=r.results.length>50?btoa(JSON.stringify([last.created_at,last.id])).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''):null;return json({status:'success',data:{items,nextCursor,checkedAt:Date.now()}});
     }
     if(request.method==='GET'&&path[0]==='delivery'&&path[1]==='overview'){
       if(!env.ADMIN_DB)throw new AdminError('DELIVERY_NOT_CONFIGURED',503);
@@ -23,8 +44,9 @@ export async function onRequest({request,env,data}){
         const lastAccepted=await env.ADMIN_DB.prepare('SELECT accepted_at,mode FROM delivery_jobs WHERE source IN ('+placeholders+') AND accepted_at IS NOT NULL ORDER BY accepted_at DESC LIMIT 1').bind(...sources).first();
         const lastWebhook=await env.ADMIN_DB.prepare('SELECT e.received_at,e.event,j.mode FROM delivery_events e JOIN delivery_jobs j ON j.id=e.job_id WHERE j.source IN ('+placeholders+') ORDER BY e.received_at DESC LIMIT 1').bind(...sources).first();
         const checkedAt=Date.now(),oldestQueuedAt=states.results.find(x=>x.state==='queued')?.oldest??null;
-        const settings=await deliverySettings(env);for(const r of items.results)if(r.state==='uncertain'){const full=await env.ADMIN_DB.prepare('SELECT provider_id,event_at FROM delivery_jobs WHERE id=?').bind(r.id).first();r.version=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([r.id,r.state,full.provider_id,full.event_at])))),x=>x.toString(16).padStart(2,'0')).join('');}
-        return json({status:'success',data:{states:states.results,items:items.results,settings,health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:settings.mode,providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:'Denní strop této fronty není celková zbývající kvóta účtu SMTP2GO. Počítá se podle UTC; zahrnuje i nejisté pokusy.'}});
+        const settings=await deliverySettings(env);for(const r of items.results)if(r.state==='uncertain'){const full=await env.ADMIN_DB.prepare('SELECT provider_id,event_at FROM delivery_jobs WHERE id=?').bind(r.id).first();r.version=await sha256(JSON.stringify([r.id,r.state,full.provider_id,full.event_at]));}
+        let quota=null;try{quota=await providerQuota(env);}catch{}const attempts=await env.ADMIN_DB.prepare('SELECT COUNT(*) AS n FROM delivery_attempts WHERE started_at>=?').bind(pragueDay(checkedAt).start).first();
+        return json({status:'success',data:{states:states.results,items:items.results,settings,quota,dailyAttempts:attempts.n,dailyRemaining:Math.max(0,settings.daily_budget-attempts.n),health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:settings.mode,providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:'Denní strop se obnovuje o české půlnoci a zahrnuje i nejisté pokusy. Měsíční kvóta se ověřuje u SMTP2GO; při neověřeném nebo vyčerpaném zůstatku se nové odeslání zablokuje.'}});
       }catch{throw new AdminError('DELIVERY_NOT_CONFIGURED',503);}
     }
     if(request.method==='GET'&&path[0]==='history'){

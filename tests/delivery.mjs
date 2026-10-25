@@ -6,7 +6,8 @@ import {onRequest} from '../functions/api/delivery.js';
 import {onRequest as adminRequest} from '../functions/api/admin/[[path]].js';
 import {onRequest as webhookRequest} from '../functions/api/delivery-webhook.js';
 function fixture(){
- const sqlite=new DatabaseSync(':memory:');for(const file of ['0002_delivery.sql','0003_delivery_cancellations.sql','0004_web_operations.sql'])sqlite.exec(fs.readFileSync(new URL('../admin/migrations/'+file,import.meta.url),'utf8'));
+ const sqlite=new DatabaseSync(':memory:');for(const file of ['0002_delivery.sql','0003_delivery_cancellations.sql','0004_web_operations.sql','0005_operations.sql'])sqlite.exec(fs.readFileSync(new URL('../admin/migrations/'+file,import.meta.url),'utf8'));
+ sqlite.prepare('INSERT INTO provider_quota VALUES(1,?,?,?,?,?,?,NULL,0)').run(Date.now()-86400000,Date.now()+30*86400000,0,1000,1000,Date.now());
  const db={prepare(sql){let args=[];return {bind(...v){args=v;return this;},async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){const r=sqlite.prepare(sql).run(...args);return {success:true,meta:{changes:r.changes}};}};},async batch(items){sqlite.exec('BEGIN IMMEDIATE');try{const r=[];for(const item of items)r.push(await item.run());sqlite.exec('COMMIT');return r;}catch(e){sqlite.exec('ROLLBACK');throw e;}}};
  const env={ADMIN_DB:db,RESERVATIONS_ADMIN_SECRET:'offline-reservations-key-'.repeat(2),SPONSORS_ADMIN_SECRET:'offline-sponsors-key-'.repeat(2),SMTP2GO_API_KEY:'offline-never-transmit',DELIVERY_SENDING_ENABLED:'live'};
  return {sqlite,db,env,store:new DeliveryStore(db)};
