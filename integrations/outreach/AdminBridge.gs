@@ -41,7 +41,9 @@ function doPost(e){
 function outreachAdmin_(d){
   let lock;try{
     outreachAdminVerify_(d);if(!['health','campaign','configureCampaign','resumeCampaign','sponsors','sponsor','history','commandStatus','pauseCampaign','updateSponsor'].includes(d.op))throw Error('REJECTED');
-    lock=LockService.getScriptLock();if(!lock.tryLock(5000))throw Error('BUSY');
+    // These projections have no side effects and must remain available during
+    // a long sender run. All mutations still read their version under the lock.
+    if(!['health','campaign'].includes(d.op)){lock=LockService.getScriptLock();if(!lock.tryLock(5000))throw Error('BUSY');}
     const settings=outreachAdminSettings_(),p=PropertiesService.getScriptProperties();
     if(d.op==='campaign')return {status:'success',data:outreachAdminControl_(settings)};
     if(d.op==='health')return {status:'success',data:{release:'central-admin-v1',checkedAt:Date.now(),provider:typeof rdOutreachUsesCentral_==='function'&&rdOutreachUsesCentral_()?'CENTRAL_SMTP2GO':settings.SENDER_PROVIDER||'Neověřeno',queueRunning:settings.V16_QUEUE_RUNNING==='TRUE',state:p.getProperty('V200_STATE')||'Neověřeno',remainingRecipients:MailApp.getRemainingDailyQuota(),lastHeartbeat:p.getProperty('V200_HEARTBEAT'),version:outreachAdminHash_([settings.CAMPAIGN_ENABLED,settings.V16_QUEUE_RUNNING])}};
