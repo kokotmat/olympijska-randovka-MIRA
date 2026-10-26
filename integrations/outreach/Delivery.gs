@@ -143,7 +143,10 @@ function rdOutreachPrepare_(ref,kind,outbox,leads,s,ledger){
 }
 function rdOutreachAdmit_(outbox,leads,s,ledger){
   const perRun=Number(s.MAX_SEND_PER_RUN??1);if(!Number.isFinite(perRun)||perRun<0)throw Error('DELIVERY_LIMIT_INVALID');
-  const q=v16GetQueue_(),supp=loadSuppressionSetForBatch_(),mapping=v15MappingCache_(),max=Math.min(20,Math.floor(perRun),rdOutreachBudget_(outbox,s,ledger));let admitted=0;
+  // Google sheet writes are slow. Drain existing work before reserving more;
+  // the daily budget is unchanged and existing reservations are never dropped.
+  const outstanding=outbox.rows.filter(x=>['prepared','unknown','queued','sending','uncertain'].includes(x.state)).length;
+  const q=v16GetQueue_(),supp=loadSuppressionSetForBatch_(),mapping=v15MappingCache_(),max=Math.min(5,Math.floor(perRun),Math.max(0,10-outstanding),rdOutreachBudget_(outbox,s,ledger));let admitted=0;
   for(const r of q.data.rows){if(admitted>=max)break;const x=rowToObject_(q.data.headers,r);if(clean_(x.state)!=='QUEUED')continue;const due=asDate_(x.scheduled_at);if(due&&due>new Date())continue;
     const ref=leads.byId[clean_(x.campaign_id)];if(!ref)continue;const lead=ref.lead;
     if(clean_(lead.permission_status).toUpperCase()!=='CONSENTED'||v16QueueEligible_(lead,s,ledger,new Set(),new Set(),supp,mapping))continue;
