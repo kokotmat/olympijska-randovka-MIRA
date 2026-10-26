@@ -17,7 +17,7 @@ function outreachAdminVerify_(d){
   const expected=Utilities.computeHmacSha256Signature(value,secret,Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
   const x=outreachAdminHash_(String(d.signature)),y=outreachAdminHash_(expected);let diff=0;for(let i=0;i<x.length;i++)diff|=x.charCodeAt(i)^y.charCodeAt(i);if(diff)throw Error('AUTH');
 }
-function outreachAdminSettings_(){const s=outreachAdminBook_().getSheetByName('SETTINGS');if(!s)throw Error('BRIDGE_SCHEMA');return Object.fromEntries(s.getDataRange().getValues().slice(1).filter(r=>r[0]).map(r=>[String(r[0]),String(r[1])]));}
+function outreachAdminSettings_(){const s=outreachAdminBook_().getSheetByName('SETTINGS');if(!s)throw Error('BRIDGE_SCHEMA');return Object.fromEntries(s.getDataRange().getValues().slice(1).filter(r=>r[0]).map(r=>[String(r[0]),typeof r[1]==='boolean'?(r[1]?'TRUE':'FALSE'):String(r[1])]));}
 function outreachAdminControlVersion_(s){return outreachAdminHash_(['CAMPAIGN_ENABLED','V16_QUEUE_RUNNING','MODE','DAILY_SEND_LIMIT','SEND_WEEKDAYS','SEND_START_HOUR','SEND_END_HOUR','MAX_FOLLOWUPS'].map(k=>s[k]||''));}
 function outreachAdminControl_(s){return {enabled:s.CAMPAIGN_ENABLED==='TRUE'&&s.V16_QUEUE_RUNNING==='TRUE',mode:s.MODE,dailyLimit:Number(s.DAILY_SEND_LIMIT),weekdays:s.SEND_WEEKDAYS,startHour:Number(s.SEND_START_HOUR),endHour:Number(s.SEND_END_HOUR),maxFollowups:Number(s.MAX_FOLLOWUPS),version:outreachAdminControlVersion_(s)};}
 function outreachAdminSponsor_(r,map){const get=k=>String(r[map[k]]||'');return {id:get('campaign_id'),name:get('organization_name')||get('brand_name')||get('legal_entity'),email:get('email_primary'),
