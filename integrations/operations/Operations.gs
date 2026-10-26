@@ -3,7 +3,7 @@ function rdOpsSource_(){return typeof V200!=='undefined'?'sponsors':'reservation
 function rdOpsRequest_(op,args){
  const source=rdOpsSource_(),secret=PropertiesService.getScriptProperties().getProperty('ADMIN_BRIDGE_SECRET')||'';if(secret.length<32)throw Error('OPS_NOT_CONFIGURED');
  const d={source:source,op:op,args:args,ts:Date.now(),nonce:Utilities.getUuid()};
- d.signature=Utilities.computeHmacSha256Signature(JSON.stringify(['randovka-ops-v1',d.ts,d.nonce,source,op,args]),secret).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
+ d.signature=Utilities.computeHmacSha256Signature(JSON.stringify(['randovka-ops-v1',d.ts,d.nonce,source,op,args]),secret,Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
  const r=UrlFetchApp.fetch('https://olympijskarandovka.cz/api/ops',{method:'post',contentType:'text/plain',payload:JSON.stringify(d),muteHttpExceptions:true});let body;try{body=JSON.parse(r.getContentText());}catch(_){throw Error('OPS_UNREADABLE');}if(r.getResponseCode()!==200||body.status!=='success')throw Error(body.code||'OPS_UNAVAILABLE');return body.data;
 }
 function rdOpsDay_(){return Utilities.formatDate(new Date(),'Europe/Prague','yyyy-MM-dd');}

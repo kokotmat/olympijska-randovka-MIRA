@@ -6,7 +6,7 @@ function adminEnvelope_(d){
   if(secret.length<32||!allowed.length)throw Error('BRIDGE_NOT_CONFIGURED');
   if(d.v!==1||!Number.isSafeInteger(d.ts)||Math.abs(Date.now()-d.ts)>120000||!/^[a-f0-9-]{36}$/i.test(d.nonce||'')||!allowed.includes(d.actor)||typeof d.op!=='string'||!d.args||typeof d.args!=='object'||Array.isArray(d.args))throw Error('AUTH');
   const value=JSON.stringify(['randovka-admin-v1',d.ts,d.nonce,d.op,d.actor,d.commandId||'',d.expectedVersion||'',d.args]);
-  const expected=Utilities.computeHmacSha256Signature(value,secret).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
+  const expected=Utilities.computeHmacSha256Signature(value,secret,Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
   if(!sameSecret_(expected,d.signature))throw Error('AUTH');
   const cache=CacheService.getScriptCache(),key='admin-nonce:'+d.nonce;
   if(cache.get(key))throw Error('AUTH');cache.put(key,'1',180);

@@ -8,7 +8,7 @@ function rdDeliveryRequest_(source,op,args){
   if(secret.length<32)throw new Error('DELIVERY_NOT_CONFIGURED');
   const d={source:source,op:op,args:args,ts:Date.now(),nonce:Utilities.getUuid()};
   const canonical=JSON.stringify(['randovka-delivery-v1',d.ts,d.nonce,d.source,d.op,d.args]);
-  d.signature=Utilities.computeHmacSha256Signature(canonical,secret).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
+  d.signature=Utilities.computeHmacSha256Signature(canonical,secret,Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');
   let response;
   try{response=UrlFetchApp.fetch('https://olympijskarandovka.cz/api/delivery',{method:'post',contentType:'text/plain;charset=UTF-8',payload:JSON.stringify(d),muteHttpExceptions:true,followRedirects:false});}
   catch(_){throw new Error('DELIVERY_RESULT_UNKNOWN');}
