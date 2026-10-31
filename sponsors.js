@@ -55,6 +55,30 @@ window.PLES_SPONSORS = [
     "url": "https://www.fchk.cz/"
   },
   {
+    "name": "Český paralympijský výbor",
+    "key": "paralympic-cz",
+    "logo": "assets/sponsors/paralympic-cz.webp",
+    "url": "https://www.paralympic.cz/"
+  },
+  {
+    "name": "VŠCHT Praha",
+    "key": "vscht",
+    "logo": "assets/sponsors/vscht.webp",
+    "url": "https://www.vscht.cz/"
+  },
+  {
+    "name": "Laba",
+    "key": "laba",
+    "logo": "assets/sponsors/laba.webp",
+    "url": "https://l-a-b-a.cz/"
+  },
+  {
+    "name": "Historické dárky",
+    "key": "historicke-darky",
+    "logo": "assets/sponsors/historicke-darky.webp",
+    "url": "https://historickedarky.cz/"
+  },
+  {
     "name": "Tary Povoroznyk",
     "key": "tary",
     "logo": "assets/sponsors/tary.png",
@@ -125,24 +149,6 @@ window.PLES_SPONSORS = [
     "key": "detesk",
     "logo": "assets/sponsors/detesk.svg",
     "url": "https://detesk.cz/cs/"
-  },
-  {
-    "name": "VŠCHT Praha",
-    "key": "vscht",
-    "logo": "assets/sponsors/vscht.webp",
-    "url": "https://www.vscht.cz/"
-  },
-  {
-    "name": "Laba",
-    "key": "laba",
-    "logo": "assets/sponsors/laba.webp",
-    "url": "https://l-a-b-a.cz/"
-  },
-  {
-    "name": "Historické dárky",
-    "key": "historicke-darky",
-    "logo": "assets/sponsors/historicke-darky.webp",
-    "url": "https://historickedarky.cz/"
   },
   {
     "name": "Matějovský",
