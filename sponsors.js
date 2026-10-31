@@ -133,6 +133,18 @@ window.PLES_SPONSORS = [
     "url": "https://www.vscht.cz/"
   },
   {
+    "name": "Laba",
+    "key": "laba",
+    "logo": "assets/sponsors/laba.webp",
+    "url": "https://l-a-b-a.cz/"
+  },
+  {
+    "name": "Historické dárky",
+    "key": "historicke-darky",
+    "logo": "assets/sponsors/historicke-darky.webp",
+    "url": "https://historickedarky.cz/"
+  },
+  {
     "name": "Matějovský",
     "key": "matejovsky",
     "logo": "assets/sponsors/matejovsky.svg",
@@ -155,5 +167,17 @@ window.PLES_SPONSORS = [
     "key": "salon-sweet",
     "logo": "assets/sponsors/salon-sweet.webp",
     "url": "https://www.salonsweet.cz/"
+  },
+  {
+    "name": "ZOOKEE",
+    "key": "zookee",
+    "logo": "assets/sponsors/zookee.webp",
+    "url": "https://www.zookee.cz/"
+  },
+  {
+    "name": "Wavin",
+    "key": "wavin",
+    "logo": "assets/sponsors/wavin.webp",
+    "url": "https://wavin.com/cz"
   }
 ];
