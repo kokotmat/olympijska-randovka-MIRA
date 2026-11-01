@@ -4,11 +4,13 @@ import {operations,deliverySettings} from '../../../lib/admin/operations.js';
 import {providerQuota,pragueDay} from '../../../lib/admin/quota.js';
 import {digest as sha256} from '../../../lib/admin/delivery.js';
 import {centralDeliveryActivity} from '../../../lib/admin/ops.js';
+import {mailbox} from '../../../lib/admin/mailbox.js';
 const WRITES={reservations:new Set(['cancelOrder','retryMail','closeSales','closeGate']),sponsors:new Set(['pauseCampaign','updateSponsor','configureCampaign','resumeCampaign']),assistant:new Set(['pauseAi','resumeAi','retryJob'])};
 const READS={reservations:new Set(['orders','order','history']),sponsors:new Set(['campaign','sponsors','sponsor','history']),assistant:new Set(['jobs','usage','history'])};
 export async function onRequest({request,env,data}){
   try{
     const user=data.identity,url=new URL(request.url),path=url.pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
+    if(path[0]==='mail'&&path.length===2)return await mailbox(request,env,user,path[1]);
     if(path[0]==='delivery'&&['settings','resolve'].includes(path[1])||path[0]==='web'&&['partners','draft','publish','withdraw','preview'].includes(path[1]))return await operations({request,env,data},path);
     if(request.method==='GET'&&path[0]==='session')return json({status:'success',data:{user,release:'central-admin-v1',components:{reservations:!!env.RESERVATIONS_ADMIN_URL,sponsors:!!env.SPONSORS_ADMIN_URL,assistant:!!env.ASSISTANT_ADMIN_URL}}});
     if(request.method==='GET'&&path[0]==='overview'){

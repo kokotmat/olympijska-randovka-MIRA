@@ -40,7 +40,9 @@ function doPost(e){
 }
 function outreachAdmin_(d){
   let lock;try{
-    outreachAdminVerify_(d);if(!['health','campaign','configureCampaign','resumeCampaign','sponsors','sponsor','history','commandStatus','pauseCampaign','updateSponsor'].includes(d.op))throw Error('REJECTED');
+    outreachAdminVerify_(d);
+    if(['mailList','mailThread','mailAttachment'].includes(d.op))return {status:'success',data:rdMailbox_(d.op,d.args,d.actor)};
+    if(!['health','campaign','configureCampaign','resumeCampaign','sponsors','sponsor','history','commandStatus','pauseCampaign','updateSponsor'].includes(d.op))throw Error('REJECTED');
     // These projections have no side effects and must remain available during
     // a long sender run. All mutations still read their version under the lock.
     if(!['health','campaign'].includes(d.op)){lock=LockService.getScriptLock();if(!lock.tryLock(5000))throw Error('BUSY');}

@@ -9,7 +9,7 @@ const node=()=>({textContent:'',hidden:false,dataset:{},classList:{remove(){}},s
 const location={hash:'#overview'};
 const context=vm.createContext({document:{getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id);},querySelectorAll(){return [];}},window:{addEventListener(){}},location,AbortSignal,console,setInterval(){},
  fetch:()=>new Promise(resolve=>requests.push(resolve)),renders});
-const source=fs.readFileSync(new URL('../sprava/admin.js',import.meta.url),'utf8').replace("window.addEventListener('hashchange',()=>load());load();","window.addEventListener('hashchange',()=>load());");
+const source=fs.readFileSync(new URL('../sprava/admin.js',import.meta.url),'utf8').replace("import {renderMailbox} from './mailbox.js';",'const renderMailbox=async()=>{};').replace("window.addEventListener('hashchange',()=>load());load();","window.addEventListener('hashchange',()=>load());");
 vm.runInContext(source+`;renderOverview=async ticket=>renders.push(['overview',ticket]);renderOperations=async()=>{};renderMessages=async ticket=>renders.push(['messages',ticket]);`,context);
 const initial=vm.runInContext('load()',context);
 location.hash='#messages';
