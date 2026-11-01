@@ -3,6 +3,7 @@ import {bridge,componentState} from '../../../lib/admin/bridge.js';
 import {operations,deliverySettings} from '../../../lib/admin/operations.js';
 import {providerQuota,pragueDay} from '../../../lib/admin/quota.js';
 import {digest as sha256} from '../../../lib/admin/delivery.js';
+import {centralDeliveryActivity} from '../../../lib/admin/ops.js';
 const WRITES={reservations:new Set(['cancelOrder','retryMail','closeSales','closeGate']),sponsors:new Set(['pauseCampaign','updateSponsor','configureCampaign','resumeCampaign']),assistant:new Set(['pauseAi','resumeAi','retryJob'])};
 const READS={reservations:new Set(['orders','order','history']),sponsors:new Set(['campaign','sponsors','sponsor','history']),assistant:new Set(['jobs','usage','history'])};
 export async function onRequest({request,env,data}){
@@ -45,8 +46,9 @@ export async function onRequest({request,env,data}){
         const lastWebhook=await env.ADMIN_DB.prepare('SELECT e.received_at,e.event,j.mode FROM delivery_events e JOIN delivery_jobs j ON j.id=e.job_id WHERE j.source IN ('+placeholders+') ORDER BY e.received_at DESC LIMIT 1').bind(...sources).first();
         const checkedAt=Date.now(),oldestQueuedAt=states.results.find(x=>x.state==='queued')?.oldest??null;
         const settings=await deliverySettings(env);for(const r of items.results)if(r.state==='uncertain'){const full=await env.ADMIN_DB.prepare('SELECT provider_id,event_at FROM delivery_jobs WHERE id=?').bind(r.id).first();r.version=await sha256(JSON.stringify([r.id,r.state,full.provider_id,full.event_at]));}
-        let quota=null;try{quota=await providerQuota(env);}catch{}const attempts=await env.ADMIN_DB.prepare('SELECT COUNT(*) AS n FROM delivery_attempts WHERE started_at>=?').bind(pragueDay(checkedAt).start).first();
-        return json({status:'success',data:{states:states.results,items:items.results,settings,quota,dailyAttempts:attempts.n,dailyRemaining:Math.max(0,settings.daily_budget-attempts.n),health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:settings.mode,providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:'Denní strop se obnovuje o české půlnoci a zahrnuje i nejisté pokusy. Měsíční kvóta se ověřuje u SMTP2GO; při neověřeném nebo vyčerpaném zůstatku se nové odeslání zablokuje.'}});
+        const provider=await centralDeliveryActivity(env);
+        let quota=null;if(provider.quotaRequired)try{quota=await providerQuota(env);}catch{}const attempts=await env.ADMIN_DB.prepare('SELECT COUNT(*) AS n FROM delivery_attempts WHERE started_at>=?').bind(pragueDay(checkedAt).start).first();
+        return json({status:'success',data:{states:states.results,items:items.results,settings,provider,quota,dailyAttempts:attempts.n,dailyRemaining:Math.max(0,settings.daily_budget-attempts.n),health:{lastAccepted,lastWebhook,oldestQueuedAt,queueAgeMs:oldestQueuedAt===null?null:Math.max(0,checkedAt-oldestQueuedAt)},sendingMode:settings.mode,providerKeyConfigured:!!env.SMTP2GO_API_KEY,webhookConfigured:!!env.SMTP2GO_WEBHOOK_SECRET,checkedAt,quotaNote:provider.quotaRequired?'Denní strop se obnovuje o české půlnoci a zahrnuje i nejisté pokusy. Měsíční kvóta se ověřuje u SMTP2GO; při neověřeném nebo vyčerpaném zůstatku se nové odeslání zablokuje.':'Externí odesílání SMTP2GO je neaktivní a nemá nevyřešené zprávy. Jeho kvóta se nekontroluje. Aktuální kvótu Googlu zobrazuje Přehled systému.'}});
       }catch{throw new AdminError('DELIVERY_NOT_CONFIGURED',503);}
     }
     if(request.method==='GET'&&path[0]==='history'){
