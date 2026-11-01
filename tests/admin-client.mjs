@@ -20,3 +20,15 @@ requests[0](session());await initial;
 assert.deepEqual(JSON.parse(JSON.stringify(renders)),[['messages',2]]);
 assert.equal(nodes.get('page-title').textContent,'Zprávy a AI asistent');
 console.log('PASS fast navigation during sign-in cannot repaint a newer admin page; no network or writes');
+// Also cover navigation after session initialization while overview is pending.
+let finishOverview;
+context.deferOverview=()=>new Promise(resolve=>{finishOverview=resolve;});
+vm.runInContext('renderOverview=async()=>await deferOverview();',context);
+renders.length=0;
+location.hash='#overview';
+const pendingOverview=vm.runInContext('load()',context);
+location.hash='#messages';
+await vm.runInContext('load()',context);
+finishOverview();await pendingOverview;
+assert.deepEqual(JSON.parse(JSON.stringify(renders)),[['messages',4]]);
+console.log('PASS completed old overview cannot render the current section a second time');
