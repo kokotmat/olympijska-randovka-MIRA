@@ -1,6 +1,6 @@
 const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
 export async function renderMailbox({view,api,active,notice},filters={folder:'inbox',q:'',cursor:'0'}){
- const form=node('form',undefined,'toolbar'),select=node('select'),input=node('input'),submit=node('button','Hledat','button');
+ const form=node('form',undefined,'toolbar mailbox-toolbar'),select=node('select'),input=node('input'),submit=node('button','Hledat','button');
  select.setAttribute('aria-label','Složka pošty');input.setAttribute('aria-label','Hledat v poště');input.placeholder='Jméno, předmět, adresa…';input.maxLength=200;input.value=filters.q||'';
  for(const [value,label] of Object.entries({inbox:'Příchozí',sent:'Odeslané',drafts:'Koncepty',all:'Veškerá pošta',spam:'Spam',trash:'Koš'})){const o=node('option',label);o.value=value;select.append(o);}select.value=filters.folder;
  form.append(select,input,submit);
@@ -10,9 +10,11 @@ export async function renderMailbox({view,api,active,notice},filters={folder:'in
  const requestId=crypto.randomUUID();view.dataset.mailRequest=requestId;
  const d=await api('mail/list?'+new URLSearchParams(filters));if(!active()||view.dataset.mailRequest!==requestId)return;
  status.textContent=d.account+' · načteno '+new Date(d.checkedAt).toLocaleString('cs-CZ',{timeZone:'Europe/Prague'});
+ const freshness=document.getElementById('last-check');if(freshness){freshness.textContent='Načteno '+new Date(d.checkedAt).toLocaleString('cs-CZ');freshness.dataset.loadedAt=String(d.checkedAt);freshness.classList.remove('data-stale');}
  if(!d.items.length)list.append(node('p','Žádná vlákna pro tento výběr.'));
  for(const t of d.items){const b=node('button',undefined,'mail-row');b.type='button';b.append(node('strong',t.subject||'(bez předmětu)'),node('span',new Date(t.lastAt).toLocaleString('cs-CZ')+' · '+t.count+' zpráv'+(t.unread?' · nepřečtené':'')));b.addEventListener('click',()=>showThread(t.id,api,notice,active));list.append(b);}
- if(d.nextCursor){const more=node('button','Další stránka','button secondary');more.type='button';more.addEventListener('click',()=>renderMailbox({view,api,active,notice},{...filters,cursor:d.nextCursor}).catch(e=>notice(e.message,true)));list.append(more);}
+ const paging=node('div',undefined,'actions');
+ for(const [label,cursor]of [['Předchozí stránka',Number(filters.cursor)>0?String(Math.max(0,Number(filters.cursor)-20)):null],['Další stránka',d.nextCursor]])if(cursor!==null&&cursor!==undefined){const b=node('button',label,'button secondary');b.type='button';b.addEventListener('click',()=>renderMailbox({view,api,active,notice},{...filters,cursor}).catch(e=>notice(e.message,true)));paging.append(b);}list.append(paging);
 }
 let detailRequest=0;
 async function showThread(id,api,notice,active,cursor='0',append=false){
